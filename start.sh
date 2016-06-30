@@ -1,2 +1,3 @@
 #!/bin/sh
-python3 ./src/main.py
+cd "$(dirname "$0")"
+python3 src/main.py
