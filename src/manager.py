@@ -87,6 +87,7 @@ class Manager(threading.Thread):
                     continue
                 c = Connection(addr[0], addr[1])
                 c.start()
+                hosts.add(c.host)
                 with shared.connections_lock:
                     shared.connections.add(c)
 
