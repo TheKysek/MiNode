@@ -87,4 +87,5 @@ ENV/
 
 # Rope project settings
 .ropeproject
-src/minode_data/
+
+minode_data/
