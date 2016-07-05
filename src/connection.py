@@ -102,7 +102,7 @@ class Connection(threading.Thread):
     def _send_big_inv(self):
         with shared.objects_lock:
             self.send_queue.put(message.Inv({vector for vector in shared.objects.keys() if shared.objects[vector].expires_time > time.time()}))
-        addr = {structure.NetAddr(1, c.host, c.port) for c in shared.connections.copy() if not c.server}
+        addr = {structure.NetAddr(1, c.host, c.port) for c in shared.connections.copy() if not c.server and c.status == 'verack_received'}
         if len(addr) != 0:
             self.send_queue.put(message.Addr(addr))
         self.sent_big_inv_message = True
