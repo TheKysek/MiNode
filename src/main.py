@@ -14,6 +14,12 @@ import shared
 def main():
     logging.basicConfig(level=shared.log_level, format='[%(asctime)s] [%(levelname)s] %(message)s')
     logging.info('Starting MiNode')
+    if not os.path.exists(shared.data_directory):
+        try:
+            os.makedirs(shared.data_directory)
+        except Exception as e:
+            logging.warning('Error while creating data directory in: {}'.format(shared.data_directory))
+            logging.warning(e)
     try:
         with open(shared.data_directory + 'objects.pickle', mode='br') as file:
             shared.objects = pickle.load(file)
