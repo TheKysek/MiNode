@@ -60,8 +60,8 @@ class Connection(threading.Thread):
                     data = None
                 if time.time() - self.last_message_received > 20 and self.status != 'verack_received':
                     data = None
-                if time.time() - self.last_message_sent > 60 and self.status == 'verack_received':
-                    self.send_queue.put(message.Message(b'alive', b''))
+                if time.time() - self.last_message_sent > 300 and self.status == 'verack_received':
+                    self.send_queue.put(message.Message(b'pong', b''))
                 if not self.sent_big_inv_message and self.status == 'verack_received' and self.sent_verack:
                     self._send_big_inv()
             except ConnectionResetError:
@@ -173,11 +173,14 @@ class Connection(threading.Thread):
             for vector in getdata.vectors:
                 if vector in shared.objects:
                     self.send_queue.put(message.Message(b'object', shared.objects[vector].to_bytes()))
-        elif m.command == b'addr': #  TODO fix ;P
+        elif m.command == b'addr':
             addr = message.Addr.from_message(m)
             logging.debug('{}:{} -> {}'.format(self.host, self.port, addr))
             for a in addr.addresses:
                 shared.unchecked_node_pool.add((a.host, a.port))
+        elif m.command == b'ping':
+            logging.debug('{}:{} -> ping'.format(self.host, self.port))
+            self.send_queue.put(message.Message(b'pong', b''))
         else:
             logging.debug('{}:{} -> {}'.format(self.host, self.port, m))
 
