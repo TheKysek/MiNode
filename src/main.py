@@ -29,7 +29,7 @@ def main():
 
     try:
         with open(shared.data_directory + 'nodes.pickle', mode='br') as file:
-            shared.nodes = pickle.load(file)
+            shared.node_pool = pickle.load(file)
     except Exception as e:
         logging.warning('Error while loading nodes from disk.')
         logging.warning(e)
