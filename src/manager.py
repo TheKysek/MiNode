@@ -59,10 +59,9 @@ class Manager(threading.Thread):
 
     @staticmethod
     def clean_connections():
-        conns = shared.connections.copy()
         hosts = set()
         outgoing_connections = 0
-        for c in conns:
+        for c in shared.connections.copy():
             if not c.is_alive() or c.status == 'disconnected':
                 with shared.connections_lock:
                     shared.connections.remove(c)
@@ -70,8 +69,7 @@ class Manager(threading.Thread):
                 hosts.add(c.host)
                 if not c.server:
                     outgoing_connections += 1
-        shared.hosts = hosts
-        if outgoing_connections < shared.outgoing_connections:
+        if outgoing_connections < shared.outgoing_connections and shared.send_outgoing_connections:
             to_connect = set()
             if len(shared.unchecked_node_pool) > 12:
                 to_connect.update(random.sample(shared.unchecked_node_pool, 12))
@@ -90,6 +88,7 @@ class Manager(threading.Thread):
                 hosts.add(c.host)
                 with shared.connections_lock:
                     shared.connections.add(c)
+        shared.hosts = hosts
 
     @staticmethod
     def shutdown_connections():

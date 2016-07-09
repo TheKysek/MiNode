@@ -5,6 +5,7 @@ import queue
 import threading
 
 listening_port = 8444
+send_outgoing_connections = True
 data_directory = 'minode_data/'
 
 log_level = logging.DEBUG
