@@ -116,7 +116,7 @@ class Connection(threading.Thread):
                 else:
                     break
             except Exception as e:
-                print(e)
+                logging.error(e)
                 break
         self.s.settimeout(0.5)
         self.tls = True
@@ -132,15 +132,17 @@ class Connection(threading.Thread):
         self.s.settimeout(0.5)
 
     def _on_connection_fully_established(self):
-        self.status = 'fully_established'
         logging.info('Established Bitmessage protocol connection to {}:{}'.format(self.host, self.port))
         if self.remote_version.services & 2:  # NODE_SSL
             self._do_tls_handshake()
+        time.sleep(5)
         with shared.objects_lock:
-            self.send_queue.put(message.Inv({vector for vector in shared.objects.keys() if shared.objects[vector].expires_time > time.time()}))
-        addr = {structure.NetAddr(1, c.host, c.port) for c in shared.connections.copy() if not c.server and c.status == 'fully_established'}
+            if len(shared.objects) > 0:
+                self.send_queue.put(message.Inv({vector for vector in shared.objects.keys() if shared.objects[vector].expires_time > time.time()}))
+        addr = {structure.NetAddr(c.remote_version.services, c.host, c.port) for c in shared.connections.copy() if not c.server and c.status == 'fully_established'}
         if len(addr) != 0:
             self.send_queue.put(message.Addr(addr))
+        self.status = 'fully_established'
 
     def _process_queue(self):
         while not self.send_queue.empty():

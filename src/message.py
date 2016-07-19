@@ -158,6 +158,8 @@ class Inv(object):
             vectors.add(payload[:32])
             payload = payload[32:]
 
+        assert vector_count == len(vectors)
+
         return cls(vectors)
 
 
