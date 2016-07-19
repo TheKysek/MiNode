@@ -7,15 +7,16 @@ import threading
 listening_port = 8444
 send_outgoing_connections = True
 data_directory = 'minode_data/'
+source_directory = os.path.dirname(os.path.realpath(__file__))
 
 log_level = logging.DEBUG
 
 magic_bytes = b'\xe9\xbe\xb4\xd9'
 protocol_version = 3
-services = 1  # NODE_NETWORK
+services = 3  # NODE_NETWORK, NODE_SSL
 stream = 1
 nonce = os.urandom(8)
-user_agent = b'MiNode-v0.0.1'
+user_agent = b'MiNode-v0.1.0'
 timeout = 600
 header_length = 24
 

@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 import logging
+import os
 import random
+import select
 import socket
+import ssl
 import threading
 import queue
 import time
@@ -53,17 +56,19 @@ class Connection(threading.Thread):
         while True:
             data = True
             try:
-                data = self.s.recv(1014)
+                data = self.s.recv(1024)
                 self.buffer += data
-            except socket.timeout:
+            except socket.timeout or ssl.SSLError:
                 if time.time() - self.last_message_received > shared.timeout:
+                    logging.debug('Disconnecting from {};{}. Reason: time.time() - self.last_message_received > shared.timeout'.format(self.host, self.port))
                     data = None
-                if time.time() - self.last_message_received > 20 and self.status != 'verack_received':
+                if time.time() - self.last_message_received > 30 and self.status != 'fully_established':
+                    logging.debug('Disconnecting from {};{}. Reason: time.time() - self.last_message_received > 30 and self.status != \'verack_received\''.format(self.host, self.port))
                     data = None
-                if time.time() - self.last_message_sent > 300 and self.status == 'verack_received':
+                if time.time() - self.last_message_sent > 300 and self.status == 'fully_established':
                     self.send_queue.put(message.Message(b'pong', b''))
                 if not self.sent_big_inv_message and self.status == 'verack_received' and self.sent_verack:
-                    self._send_big_inv()
+                    self._on_connection_fully_established()
             except ConnectionResetError:
                 data = None
             self._process_buffer()
@@ -95,12 +100,39 @@ class Connection(threading.Thread):
             logging.debug('{}:{} <- {}'.format(self.host, self.port, structure.Object.from_message(m)))
         else:
             logging.debug('{}:{} <- {}'.format(self.host, self.port, m))
+        self.s.settimeout(60)
         self.s.sendall(m.to_bytes())
+        self.s.settimeout(0.5)
 
-    def _send_big_inv(self):
+    def _on_connection_fully_established(self):
+        if self.remote_version.services & 2:  # NODE_SSL
+            self.s.settimeout(30)
+            logging.debug('Initializing TLS connection with {}:{}'.format(self.host, self.port))
+            self.s = ssl.wrap_socket(self.s, keyfile=os.path.join(shared.source_directory, 'tls', 'key.pem'),
+                                     certfile=os.path.join(shared.source_directory, 'tls', 'cert.pem'),
+                                     server_side=self.server, ssl_version=ssl.PROTOCOL_TLSv1, do_handshake_on_connect=False,
+                                     ciphers='AECDH-AES256-SHA')
+            if hasattr(self.s, "context"):
+                self.s.context.set_ecdh_curve("secp256k1")
+            while True:
+                try:
+                    self.s.do_handshake()
+                    break
+                except ssl.SSLError as e:
+                    if e.errno == 2:
+                        select.select([self.s], [self.s], [])
+                    else:
+                        break
+                except Exception as e:
+                    print(e)
+                    break
+            self.s.settimeout(0.5)
+            logging.debug('Established TLS connection with {}:{}'.format(self.host, self.port))
+        self.status = 'fully_established'
+        time.sleep(2)
         with shared.objects_lock:
             self.send_queue.put(message.Inv({vector for vector in shared.objects.keys() if shared.objects[vector].expires_time > time.time()}))
-        addr = {structure.NetAddr(1, c.host, c.port) for c in shared.connections.copy() if not c.server and c.status == 'verack_received'}
+        addr = {structure.NetAddr(1, c.host, c.port) for c in shared.connections.copy() if not c.server and c.status == 'fully_established'}
         if len(addr) != 0:
             self.send_queue.put(message.Addr(addr))
         self.sent_big_inv_message = True

@@ -22,7 +22,7 @@ class Advertiser(threading.Thread):
             vectors_to_advertise.add(shared.vector_advertise_queue.get())
         if len(vectors_to_advertise) > 0:
             for c in shared.connections.copy():
-                if c.status == 'verack_received':
+                if c.status == 'fully_established':
                     c.send_queue.put(message.Inv(vectors_to_advertise))
 
     @staticmethod
@@ -32,5 +32,5 @@ class Advertiser(threading.Thread):
             addresses_to_advertise.add(shared.address_advertise_queue.get())
         if len(addresses_to_advertise) > 0:
             for c in shared.connections.copy():
-                if c.status == 'verack_received':
+                if c.status == 'fully_established':
                     c.send_queue.put(message.Addr(addresses_to_advertise))

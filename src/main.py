@@ -34,7 +34,7 @@ def main():
         logging.warning('Error while loading nodes from disk.')
         logging.warning(e)
 
-    with open(os.path.dirname(os.path.realpath(__file__)) + '/core_nodes.csv', mode='r', newline='') as f:
+    with open(os.path.join(shared.source_directory, 'core_nodes.csv'), mode='r', newline='') as f:
         reader = csv.reader(f)
         shared.core_nodes = {tuple(row) for row in reader}
         shared.node_pool.update(shared.core_nodes)
