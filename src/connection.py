@@ -63,7 +63,7 @@ class Connection(threading.Thread):
                     logging.debug('Disconnecting from {};{}. Reason: time.time() - self.last_message_received > shared.timeout'.format(self.host, self.port))
                     data = None
                 if time.time() - self.last_message_received > 30 and self.status != 'fully_established':
-                    logging.debug('Disconnecting from {};{}. Reason: time.time() - self.last_message_received > 30 and self.status != \'verack_received\''.format(self.host, self.port))
+                    logging.debug('Disconnecting from {};{}. Reason: time.time() - self.last_message_received > 30 and self.status != \'fully_established\''.format(self.host, self.port))
                     data = None
                 if time.time() - self.last_message_sent > 300 and self.status == 'fully_established':
                     self.send_queue.put(message.Message(b'pong', b''))
@@ -95,6 +95,30 @@ class Connection(threading.Thread):
 
             self.status = 'failed'
 
+    def _do_tls_handshake(self):
+        self.s.settimeout(30)
+        logging.debug('Initializing TLS connection with {}:{}'.format(self.host, self.port))
+        self.s = ssl.wrap_socket(self.s, keyfile=os.path.join(shared.source_directory, 'tls', 'key.pem'),
+                                 certfile=os.path.join(shared.source_directory, 'tls', 'cert.pem'),
+                                 server_side=self.server, ssl_version=ssl.PROTOCOL_TLSv1, do_handshake_on_connect=False,
+                                 ciphers='AECDH-AES256-SHA')
+        if hasattr(self.s, "context"):
+            self.s.context.set_ecdh_curve("secp256k1")
+        while True:
+            try:
+                self.s.do_handshake()
+                break
+            except ssl.SSLError as e:
+                if e.errno == 2:
+                    select.select([self.s], [self.s], [])
+                else:
+                    break
+            except Exception as e:
+                print(e)
+                break
+        self.s.settimeout(0.5)
+        logging.debug('Established TLS connection with {}:{}'.format(self.host, self.port))
+
     def _send_message(self, m):
         if type(m) == message.Message and m.command == b'object':
             logging.debug('{}:{} <- {}'.format(self.host, self.port, structure.Object.from_message(m)))
@@ -105,29 +129,6 @@ class Connection(threading.Thread):
         self.s.settimeout(0.5)
 
     def _on_connection_fully_established(self):
-        if self.remote_version.services & 2:  # NODE_SSL
-            self.s.settimeout(30)
-            logging.debug('Initializing TLS connection with {}:{}'.format(self.host, self.port))
-            self.s = ssl.wrap_socket(self.s, keyfile=os.path.join(shared.source_directory, 'tls', 'key.pem'),
-                                     certfile=os.path.join(shared.source_directory, 'tls', 'cert.pem'),
-                                     server_side=self.server, ssl_version=ssl.PROTOCOL_TLSv1, do_handshake_on_connect=False,
-                                     ciphers='AECDH-AES256-SHA')
-            if hasattr(self.s, "context"):
-                self.s.context.set_ecdh_curve("secp256k1")
-            while True:
-                try:
-                    self.s.do_handshake()
-                    break
-                except ssl.SSLError as e:
-                    if e.errno == 2:
-                        select.select([self.s], [self.s], [])
-                    else:
-                        break
-                except Exception as e:
-                    print(e)
-                    break
-            self.s.settimeout(0.5)
-            logging.debug('Established TLS connection with {}:{}'.format(self.host, self.port))
         self.status = 'fully_established'
         time.sleep(2)
         with shared.objects_lock:
@@ -174,11 +175,13 @@ class Connection(threading.Thread):
                 self.sent_verack = True
                 self.remote_version = version
                 if not self.server:
+                    self._do_tls_handshake()
                     shared.address_advertise_queue.put(structure.NetAddr(version.services, self.host, self.port))
                     shared.node_pool.add((self.host, self.port))
                 shared.address_advertise_queue.put(structure.NetAddr(shared.services, version.host, shared.listening_port))
-            if self.server:
-                self.send_queue.put(message.Version(self.host, self.port))
+                if self.server:
+                    self.send_queue.put(message.Version(self.host, self.port))
+                    self._do_tls_handshake()
         elif m.command == b'verack':
             self.status = 'verack_received'
             logging.debug('{}:{} -> {}'.format(self.host, self.port, 'verack'))
