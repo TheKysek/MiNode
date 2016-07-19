@@ -11,7 +11,7 @@ class Advertiser(threading.Thread):
 
     def run(self):
         while True:
-            time.sleep(0.6)
+            time.sleep(0.4)
             self._advertise_vectors()
             self._advertise_addresses()
 

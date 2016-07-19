@@ -47,7 +47,7 @@ class Connection(threading.Thread):
             self._connect()
         if self.status != 'connected':
             return
-        self.s.settimeout(1)
+        self.s.settimeout(0.5)
         if not self.server:
             self.send_queue.put(message.Version(self.host, self.port))
         while True:
@@ -95,9 +95,7 @@ class Connection(threading.Thread):
             logging.debug('{}:{} <- {}'.format(self.host, self.port, structure.Object.from_message(m)))
         else:
             logging.debug('{}:{} <- {}'.format(self.host, self.port, m))
-        self.s.settimeout(60)
         self.s.sendall(m.to_bytes())
-        self.s.settimeout(1)
 
     def _send_big_inv(self):
         with shared.objects_lock:
