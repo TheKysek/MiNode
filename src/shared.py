@@ -46,4 +46,3 @@ outgoing_connections = 8
 
 objects = {}
 objects_lock = threading.Lock()
-
