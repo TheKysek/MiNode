@@ -14,6 +14,7 @@ class Listener(threading.Thread):
         self.port = port
         self.family = family
         self.s = socket.socket(self.family, socket.SOCK_STREAM)
+        self.s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.s.bind((self.host, self.port))
 
     def run(self):
