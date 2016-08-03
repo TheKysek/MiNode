@@ -56,19 +56,28 @@ def main():
     advertiser = Advertiser()
     advertiser.start()
 
-    try:
-        listener_ipv4 = Listener('0.0.0.0', shared.listening_port)
-        listener_ipv4.start()
-    except Exception as e:
-        logging.error('Error while starting IPv4 listener')
-        logging.error(e)
+    listener_ipv4 = None
+    listener_ipv6 = None
+
+    if socket.has_ipv6:
+        try:
+            listener_ipv6 = Listener('', shared.listening_port, family=socket.AF_INET6)
+            listener_ipv6.start()
+        except Exception as e:
+            logging.warning('Error while starting IPv6 listener')
+            logging.warning(e)
 
     try:
-        listener_ipv6 = Listener('::', shared.listening_port, family=socket.AF_INET6)
-        listener_ipv6.start()
+        listener_ipv4 = Listener('', shared.listening_port)
+        listener_ipv4.start()
     except Exception as e:
-        logging.error('Error while starting IPv6 listener')
-        logging.error(e)
+        if listener_ipv6:
+            logging.warning('Error while starting IPv4 listener. '
+                            'However the IPv6 one seems to be working and will probably accept IPv4 connections.')
+        else:
+            logging.error('Error while starting IPv4 listener.'
+                          'You will not receive incoming connections. Please check your port configuration')
+            logging.error(e)
 
 if __name__ == '__main__':
     main()
