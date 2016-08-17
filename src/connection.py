@@ -69,7 +69,7 @@ class Connection(threading.Thread):
                         data = self.s.recv(4096)
                         self.buffer_receive += data
                         logging.debug('Received {} bytes from {}:{}'.format(len(data), self.host, self.port))
-                        if data:
+                        if data and self.buffer_receive < self.next_message_size:
                             continue
                 else:
                     data = self.s.recv(self.next_message_size - len(self.buffer_receive))
