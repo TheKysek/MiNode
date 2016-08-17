@@ -61,11 +61,19 @@ class Connection(threading.Thread):
         if not self.server:
             self.send_queue.put(message.Version(self.host, self.port))
         while True:
-            time.sleep(0.3)
+            if self.on_connection_fully_established_scheduled and not (self.buffer_send or self.buffer_receive):
+                self._on_connection_fully_established()
             data = True
             try:
-                data = self.s.recv(self.next_message_size - len(self.buffer_receive))
-                self.buffer_receive += data
+                if self.status == 'fully_established':
+                        data = self.s.recv(4096)
+                        self.buffer_receive += data
+                        logging.debug('Received {} bytes from {}:{}'.format(len(data), self.host, self.port))
+                        continue
+                else:
+                    data = self.s.recv(self.next_message_size - len(self.buffer_receive))
+                    logging.debug('Received {} bytes from {}:{}'.format(len(data), self.host, self.port))
+                    self.buffer_receive += data
             except ssl.SSLWantReadError:
                 pass
             except socket.error as e:
@@ -93,8 +101,6 @@ class Connection(threading.Thread):
                 data = None
             if time.time() - self.last_message_sent > 300 and self.status == 'fully_established':
                 self.send_queue.put(message.Message(b'pong', b''))
-            if self.on_connection_fully_established_scheduled and not (self.buffer_send or self.buffer_receive):
-                self._on_connection_fully_established()
             if self.status == 'disconnecting':
                 data = None
             if not data:
@@ -102,6 +108,7 @@ class Connection(threading.Thread):
                 self.s.close()
                 logging.info('Disconnected from {}:{}'.format(self.host, self.port))
                 break
+            time.sleep(0.2)
 
     def _connect(self):
         logging.info('Connecting to {}:{}'.format(self.host, self.port))
@@ -117,11 +124,13 @@ class Connection(threading.Thread):
             self.status = 'failed'
 
     def _send_data(self):
-        try:
-            amount = self.s.send(self.buffer_send[:1000])
-            self.buffer_send = self.buffer_send[amount:]
-        except (BlockingIOError, ssl.SSLWantWriteError):
-            pass
+        if self.buffer_send:
+            try:
+                amount = self.s.send(self.buffer_send)
+                self.buffer_send = self.buffer_send[amount:]
+                logging.debug('Sent {} bytes to {}:{}'.format(amount, self.host, self.port))
+            except (BlockingIOError, ssl.SSLWantWriteError):
+                pass
 
     def _do_tls_handshake(self):
         logging.debug('Initializing TLS connection with {}:{}'.format(self.host, self.port))
