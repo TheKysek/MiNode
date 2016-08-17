@@ -68,7 +68,7 @@ class Connection(threading.Thread):
                 if self.status == 'fully_established':
                         data = self.s.recv(4096)
                         self.buffer_receive += data
-                        if data and self.buffer_receive < self.next_message_size:
+                        if data and len(self.buffer_receive) < self.next_message_size:
                             continue
                 else:
                     data = self.s.recv(self.next_message_size - len(self.buffer_receive))
