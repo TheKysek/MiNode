@@ -71,13 +71,13 @@ class Manager(threading.Thread):
                     outgoing_connections += 1
         if outgoing_connections < shared.outgoing_connections and shared.send_outgoing_connections:
             to_connect = set()
-            if len(shared.unchecked_node_pool) > 12:
-                to_connect.update(random.sample(shared.unchecked_node_pool, 12))
+            if len(shared.unchecked_node_pool) > 16:
+                to_connect.update(random.sample(shared.unchecked_node_pool, 16))
             else:
                 to_connect.update(shared.unchecked_node_pool)
             shared.unchecked_node_pool.difference_update(to_connect)
-            if len(shared.node_pool) > 6:
-                to_connect.update(random.sample(shared.node_pool, 6))
+            if len(shared.node_pool) > 8:
+                to_connect.update(random.sample(shared.node_pool, 8))
             else:
                 to_connect.update(shared.node_pool)
             for addr in to_connect:
