@@ -23,11 +23,6 @@ header_length = 24
 nonce_trials_per_byte = 1000
 payload_length_extra_bytes = 1000
 
-# Longer synchronization, lower bandwidth usage, not really working
-conserve_bandwidth = False
-requested_objects = set()
-requested_objects_lock = threading.Lock()
-
 shutting_down = False
 
 vector_advertise_queue = queue.Queue()

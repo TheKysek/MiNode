@@ -28,9 +28,6 @@ class Manager(threading.Thread):
             if now - self.last_cleaned_objects > 90:
                 self.clean_objects()
                 self.last_cleaned_objects = now
-            if now - self.last_cleaned_requested_objects > 3:
-                self.clean_requested_objects()
-                self.last_cleaned_requested_objects = now
             if now - self.last_cleaned_connections > 2:
                 self.clean_connections()
                 self.last_cleaned_connections = now
@@ -51,11 +48,6 @@ class Manager(threading.Thread):
                 with shared.objects_lock:
                     del shared.objects[vector]
                 logging.debug('Deleted expired object: {}'.format(base64.b16encode(vector).decode()))
-
-    @staticmethod
-    def clean_requested_objects():
-        with shared.requested_objects_lock:
-            shared.requested_objects.difference_update(shared.objects.keys())
 
     @staticmethod
     def clean_connections():
