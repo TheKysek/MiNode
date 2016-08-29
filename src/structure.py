@@ -113,7 +113,7 @@ class NetAddrNoPrefix(object):
             b += b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xFF\xFF' + host
         except socket.error:
             b += socket.inet_pton(socket.AF_INET6, self.host)
-        b += struct.pack('>H', self.port)
+        b += struct.pack('>H', int(self.port))
         return b
 
     @classmethod
