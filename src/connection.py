@@ -68,7 +68,7 @@ class Connection(threading.Thread):
                 if self.status == 'fully_established':
                         data = self.s.recv(4096)
                         self.buffer_receive += data
-                        if data and len(self.buffer_receive) < self.next_message_size:
+                        if data and len(self.buffer_receive) < 4000000:
                             continue
                 else:
                     data = self.s.recv(self.next_message_size - len(self.buffer_receive))
@@ -233,7 +233,6 @@ class Connection(threading.Thread):
             logging.debug('{}:{} -> {}'.format(self.host, self.port, inv))
             to_get = inv.vectors.copy()
             to_get.difference_update(shared.objects.keys())
-            to_get.difference_update(shared.requested_objects)
             self.vectors_to_get.update(to_get)
         elif m.command == b'object':
             obj = structure.Object.from_message(m)
@@ -265,12 +264,6 @@ class Connection(threading.Thread):
                 pack = random.sample(self.vectors_to_get, 50000)
                 self.send_queue.put(message.GetData(pack))
                 self.vectors_to_get.difference_update(pack)
-                if shared.conserve_bandwidth:
-                    with shared.requested_objects_lock:
-                        shared.requested_objects.update(pack)
             else:
                 self.send_queue.put(message.GetData(self.vectors_to_get))
-                if shared.conserve_bandwidth:
-                    with shared.requested_objects_lock:
-                        shared.requested_objects.update(self.vectors_to_get)
                 self.vectors_to_get.clear()
