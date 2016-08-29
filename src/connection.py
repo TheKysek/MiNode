@@ -168,6 +168,10 @@ class Connection(threading.Thread):
             if len(shared.objects) > 0:
                 self.send_queue.put(message.Inv({vector for vector in shared.objects.keys() if shared.objects[vector].expires_time > time.time()}))
         addr = {structure.NetAddr(c.remote_version.services, c.host, c.port) for c in shared.connections.copy() if not c.server and c.status == 'fully_established'}
+        if len(shared.node_pool) > 10:
+            addr.update({structure.NetAddr(1, a[0], a[1]) for a in random.sample(shared.node_pool, 10)})
+        if len(shared.unchecked_node_pool) > 10:
+            addr.update({structure.NetAddr(1, a[0], a[1]) for a in random.sample(shared.unchecked_node_pool, 10)})
         if len(addr) != 0:
             self.send_queue.put(message.Addr(addr))
         self.status = 'fully_established'
