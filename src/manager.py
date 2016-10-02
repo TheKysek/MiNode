@@ -16,7 +16,6 @@ class Manager(threading.Thread):
         super().__init__(name='Manager')
         self.q = queue.Queue()
         self.last_cleaned_objects = time.time()
-        self.last_cleaned_requested_objects = time.time()
         self.last_cleaned_connections = time.time()
         self.last_pickled_objects = time.time()
         self.last_pickled_nodes = time.time()
