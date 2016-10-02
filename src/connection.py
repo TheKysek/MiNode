@@ -74,18 +74,19 @@ class Connection(threading.Thread):
                     data = self.s.recv(self.next_message_size - len(self.buffer_receive))
                     self.buffer_receive += data
             except ssl.SSLWantReadError:
-                pass
+                if self.status == 'fully_established':
+                    self._request_objects()
             except socket.error as e:
                 err = e.args[0]
                 if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
-                    pass
+                    if self.status == 'fully_established':
+                        self._request_objects()
                 else:
                     raise
             except ConnectionResetError:
                 logging.debug('Disconnecting from {}:{}. Reason: ConnectionResetError'.format(self.host, self.port))
                 data = None
             self._process_buffer_receive()
-            self._request_objects()
             self._process_queue()
             self._send_data()
             if time.time() - self.last_message_received > shared.timeout:
@@ -260,10 +261,12 @@ class Connection(threading.Thread):
 
     def _request_objects(self):
         if self.vectors_to_get:
-            if len(self.vectors_to_get) > 50000:
-                pack = random.sample(self.vectors_to_get, 50000)
-                self.send_queue.put(message.GetData(pack))
-                self.vectors_to_get.difference_update(pack)
-            else:
-                self.send_queue.put(message.GetData(self.vectors_to_get))
-                self.vectors_to_get.clear()
+            self.vectors_to_get.difference_update(shared.objects.keys())
+            if self.vectors_to_get:
+                if len(self.vectors_to_get) > 16:
+                    pack = random.sample(self.vectors_to_get, 16)
+                    self.send_queue.put(message.GetData(pack))
+                    self.vectors_to_get.difference_update(pack)
+                else:
+                    self.send_queue.put(message.GetData(self.vectors_to_get))
+                    self.vectors_to_get.clear()
