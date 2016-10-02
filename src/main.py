@@ -41,8 +41,10 @@ def main():
 
     try:
         for item in socket.getaddrinfo('bootstrap8080.bitmessage.org', 80):
-            shared.unchecked_node_pool.add((item[4][0], 8444))
             shared.unchecked_node_pool.add((item[4][0], 8080))
+            logging.debug('Adding ' + item[4][0] + ' to unchecked_node_pool based on DNS bootstrap method')
+        for item in socket.getaddrinfo('bootstrap8444.bitmessage.org', 80):
+            shared.unchecked_node_pool.add((item[4][0], 8444))
             logging.debug('Adding ' + item[4][0] + ' to unchecked_node_pool based on DNS bootstrap method')
     except Exception as e:
         logging.error('Error during DNS bootstrap')
