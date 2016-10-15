@@ -82,10 +82,11 @@ class Connection(threading.Thread):
                     if self.status == 'fully_established':
                         self._request_objects()
                 else:
-                    raise
+                    logging.debug('Disconnecting from {}:{}. Reason: {}'.format(self.host, self.port, e))
+                    data = None
             except ConnectionResetError:
                 logging.debug('Disconnecting from {}:{}. Reason: ConnectionResetError'.format(self.host, self.port))
-                data = None
+                self.status = 'disconnecting'
             self._process_buffer_receive()
             self._process_queue()
             self._send_data()
@@ -93,12 +94,12 @@ class Connection(threading.Thread):
                 logging.debug(
                     'Disconnecting from {}:{}. Reason: time.time() - self.last_message_received > shared.timeout'.format(
                         self.host, self.port))
-                data = None
+                self.status = 'disconnecting'
             if time.time() - self.last_message_received > 30 and self.status != 'fully_established':
                 logging.debug(
                     'Disconnecting from {}:{}. Reason: time.time() - self.last_message_received > 30 and self.status != \'fully_established\''.format(
                         self.host, self.port))
-                data = None
+                self.status = 'disconnecting'
             if time.time() - self.last_message_sent > 300 and self.status == 'fully_established':
                 self.send_queue.put(message.Message(b'pong', b''))
             if self.status == 'disconnecting':
@@ -111,25 +112,26 @@ class Connection(threading.Thread):
             time.sleep(0.2)
 
     def _connect(self):
-        logging.info('Connecting to {}:{}'.format(self.host, self.port))
+        logging.debug('Connecting to {}:{}'.format(self.host, self.port))
 
         try:
             self.s = socket.create_connection((self.host, self.port))
             self.status = 'connected'
-            logging.debug('Established TCP connection to {}:{}'.format(self.host, self.port))
+            logging.info('Established TCP connection to {}:{}'.format(self.host, self.port))
         except Exception as e:
-            logging.warning('Connection to {}:{} failed'.format(self.host, self.port))
-            logging.warning(e)
-
+            logging.warning('Connection to {}:{} failed. Reason: {}'.format(self.host, self.port, e))
             self.status = 'failed'
 
     def _send_data(self):
-        if self.buffer_send:
+        if self.buffer_send and self:
             try:
                 amount = self.s.send(self.buffer_send)
                 self.buffer_send = self.buffer_send[amount:]
             except (BlockingIOError, ssl.SSLWantWriteError):
                 pass
+            except BrokenPipeError as e:
+                logging.debug('Disconnecting from {}:{}. Reason: {}'.format(self.host, self.port, e))
+                self.status = 'disconnecting'
 
     def _do_tls_handshake(self):
         logging.debug('Initializing TLS connection with {}:{}'.format(self.host, self.port))
@@ -148,7 +150,8 @@ class Connection(threading.Thread):
             except ssl.SSLWantWriteError:
                 select.select([], [self.s], [])
             except Exception as e:
-                logging.error(e)
+                logging.debug('Disconnecting from {}:{}. Reason: {}'.format(self.host, self.port, e))
+                self.status = 'disconnecting'
                 break
         self.tls = True
         logging.debug('Established TLS connection with {}:{}'.format(self.host, self.port))
