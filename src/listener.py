@@ -21,6 +21,9 @@ class Listener(threading.Thread):
 
     def run(self):
         while True:
+            if shared.shutting_down:
+                logging.debug('Shutting down Listener')
+                break
             try:
                 conn, addr = self.s.accept()
                 logging.info('Incoming connection from: {}:{}'.format(addr[0], addr[1]))

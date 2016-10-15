@@ -38,7 +38,10 @@ class Manager(threading.Thread):
                 self.last_pickled_nodes = now
 
             if shared.shutting_down:
+                logging.debug('Shutting down connections')
                 self.shutdown_connections()
+                logging.debug('Shutting down Manager')
+                break
 
     @staticmethod
     def clean_objects():

@@ -1,3 +1,4 @@
+import logging
 import threading
 import time
 
@@ -12,6 +13,9 @@ class Advertiser(threading.Thread):
     def run(self):
         while True:
             time.sleep(0.4)
+            if shared.shutting_down:
+                logging.debug('Shutting down Advertiser')
+                break
             self._advertise_vectors()
             self._advertise_addresses()
 
