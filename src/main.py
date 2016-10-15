@@ -12,13 +12,14 @@ from listener import Listener
 import shared
 
 
-def interrupt_handler(s, f):
+def handler(s, f):
     logging.info('Gracefully shutting down MiNode')
     shared.shutting_down = True
 
 
 def main():
-    signal.signal(signal.SIGINT, interrupt_handler)
+    signal.signal(signal.SIGINT, handler)
+    signal.signal(signal.SIGTERM, handler)
     logging.basicConfig(level=shared.log_level, format='[%(asctime)s] [%(levelname)s] %(message)s')
     logging.info('Starting MiNode')
     if not os.path.exists(shared.data_directory):
