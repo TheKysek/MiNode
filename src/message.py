@@ -31,7 +31,7 @@ class Header(object):
         magic_bytes, command, payload_length, payload_checksum = struct.unpack('>4s12sL4s', b)
 
         if magic_bytes != shared.magic_bytes:
-            raise IOError('magic_bytes do not match')
+            raise ValueError('magic_bytes do not match')
 
         command = command.rstrip(b'\x00')
 
@@ -63,12 +63,12 @@ class Message(object):
         payload_length = len(payload)
 
         if payload_length != h.payload_length:
-            raise Exception('wrong payload length, expected {}, got {}'.format(h.payload_length, payload_length))
+            raise ValueError('wrong payload length, expected {}, got {}'.format(h.payload_length, payload_length))
 
         payload_checksum = hashlib.sha512(payload).digest()[:4]
 
         if payload_checksum != h.payload_checksum:
-            raise Exception('wrong payload checksum, expected {}, got {}'.format(h.payload_checksum, payload_checksum))
+            raise ValueError('wrong payload checksum, expected {}, got {}'.format(h.payload_checksum, payload_checksum))
 
         return cls(h.command, payload)
 

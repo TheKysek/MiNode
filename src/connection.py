@@ -197,11 +197,20 @@ class Connection(threading.Thread):
         while len(self.buffer_receive) >= self.next_message_size:
             if self.next_header:
                 self.next_header = False
-                h = message.Header.from_bytes(self.buffer_receive[:shared.header_length])
+                try:
+                    h = message.Header.from_bytes(self.buffer_receive[:shared.header_length])
+                except ValueError as e:
+                    self.status = 'disconnecting'
+                    logging.warning('Received malformed message from {}:{}: {}'.format(self.host, self.port, e))
+                    break
                 self.next_message_size += h.payload_length
             else:
-                m = message.Message.from_bytes(self.buffer_receive[:self.next_message_size])
-
+                try:
+                    m = message.Message.from_bytes(self.buffer_receive[:self.next_message_size])
+                except ValueError as e:
+                    self.status = 'disconnecting'
+                    logging.warning('Received malformed message from {}:{}, {}'.format(self.host, self.port, e))
+                    break
                 self.next_header = True
                 self.buffer_receive = self.buffer_receive[self.next_message_size:]
                 self.next_message_size = shared.header_length
