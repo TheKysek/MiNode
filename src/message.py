@@ -127,8 +127,8 @@ class Version(object):
 
         payload = payload[user_agent_length:]
 
-        # Assume it is stream 1
-        assert payload == b'\x01\x01'
+        if payload != b'\x01\x01':
+            raise ValueError('message not for stream 1')
 
         return cls(host, port, protocol_version, services, nonce, user_agent)
 
@@ -158,7 +158,8 @@ class Inv(object):
             vectors.add(payload[:32])
             payload = payload[32:]
 
-        assert vector_count == len(vectors)
+        if vector_count != len(vectors):
+            raise ValueError('malformed Inv message, wrong vector_count')
 
         return cls(vectors)
 
@@ -187,6 +188,9 @@ class GetData(object):
         while payload:
             vectors.add(payload[:32])
             payload = payload[32:]
+
+        if vector_count != len(vectors):
+            raise ValueError('malformed GetData message, wrong vector_count')
 
         return cls(vectors)
 
