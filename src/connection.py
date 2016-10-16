@@ -129,7 +129,7 @@ class Connection(threading.Thread):
                 self.buffer_send = self.buffer_send[amount:]
             except (BlockingIOError, ssl.SSLWantWriteError):
                 pass
-            except BrokenPipeError as e:
+            except (BrokenPipeError, ConnectionResetError, ssl.SSLError) as e:
                 logging.debug('Disconnecting from {}:{}. Reason: {}'.format(self.host, self.port, e))
                 self.status = 'disconnecting'
 
