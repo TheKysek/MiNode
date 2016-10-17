@@ -94,7 +94,7 @@ class Manager(threading.Thread):
         try:
             with open(shared.data_directory + 'objects.pickle', mode='bw') as file:
                 with shared.objects_lock:
-                    pickle.dump(shared.objects, file, protocol=4)
+                    pickle.dump(shared.objects, file, protocol=3)
                 logging.debug('Saved objects')
         except Exception as e:
             logging.warning('Error while saving objects')
@@ -108,7 +108,7 @@ class Manager(threading.Thread):
             shared.unchecked_node_pool = set(random.sample(shared.unchecked_node_pool, 1000))
         try:
             with open(shared.data_directory + 'nodes.pickle', mode='bw') as file:
-                pickle.dump(shared.node_pool, file, protocol=4)
+                pickle.dump(shared.node_pool, file, protocol=3)
                 logging.debug('Saved nodes')
         except Exception as e:
             logging.warning('Error while saving nodes')
