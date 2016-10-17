@@ -115,7 +115,7 @@ class Connection(threading.Thread):
         logging.debug('Connecting to {}:{}'.format(self.host, self.port))
 
         try:
-            self.s = socket.create_connection((self.host, self.port))
+            self.s = socket.create_connection((self.host, self.port), 10)
             self.status = 'connected'
             logging.info('Established TCP connection to {}:{}'.format(self.host, self.port))
         except Exception as e:
