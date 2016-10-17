@@ -105,7 +105,7 @@ class Manager(threading.Thread):
         if len(shared.node_pool) > 10000:
             shared.node_pool = set(random.sample(shared.node_pool, 10000))
         if len(shared.unchecked_node_pool) > 1000:
-            shared.node_pool = set(random.sample(shared.unchecked_node_pool, 1000))
+            shared.unchecked_node_pool = set(random.sample(shared.unchecked_node_pool, 1000))
         try:
             with open(shared.data_directory + 'nodes.pickle', mode='bw') as file:
                 pickle.dump(shared.node_pool, file, protocol=4)
