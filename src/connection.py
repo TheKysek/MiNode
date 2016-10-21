@@ -215,7 +215,12 @@ class Connection(threading.Thread):
                 self.buffer_receive = self.buffer_receive[self.next_message_size:]
                 self.next_message_size = shared.header_length
                 self.last_message_received = time.time()
-                self._process_message(m)
+                try:
+                    self._process_message(m)
+                except ValueError as e:
+                    self.status = 'disconnecting'
+                    logging.warning('Received malformed message from {}:{}: {}'.format(self.host, self.port, e))
+                    break
 
     def _process_message(self, m):
         if m.command == b'version':
