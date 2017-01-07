@@ -170,7 +170,15 @@ class Connection(threading.Thread):
             self._do_tls_handshake()
         with shared.objects_lock:
             if len(shared.objects) > 0:
-                self.send_queue.put(message.Inv({vector for vector in shared.objects.keys() if shared.objects[vector].expires_time > time.time()}))
+                to_send = {vector for vector in shared.objects.keys() if shared.objects[vector].expires_time > time.time()}
+                while len(to_send) > 0:
+                    if len(to_send) > 50000:
+                        pack = random.sample(to_send, 50000)
+                        self.send_queue.put(message.Inv(pack))
+                        to_send.difference_update(pack)
+                    else:
+                        self.send_queue.put(message.Inv(to_send))
+                        to_send.clear()
         addr = {structure.NetAddr(c.remote_version.services, c.host, c.port) for c in shared.connections.copy() if not c.server and c.status == 'fully_established'}
         if len(shared.node_pool) > 10:
             addr.update({structure.NetAddr(1, a[0], a[1]) for a in random.sample(shared.node_pool, 10)})
