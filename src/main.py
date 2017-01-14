@@ -70,7 +70,7 @@ def main():
     listener_ipv4 = None
     listener_ipv6 = None
 
-    if not shared.listen_for_connections:
+    if shared.listen_for_connections:
         if socket.has_ipv6:
             try:
                 listener_ipv6 = Listener('', shared.listening_port, family=socket.AF_INET6)
