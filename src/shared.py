@@ -6,8 +6,11 @@ import threading
 
 listening_port = 8444
 send_outgoing_connections = True
+listen_for_connections = True
 data_directory = 'minode_data/'
 source_directory = os.path.dirname(os.path.realpath(__file__))
+trusted_peer = None
+# trusted_peer = ('127.0.0.1', 8444)
 
 log_level = logging.DEBUG
 

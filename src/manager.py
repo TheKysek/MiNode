@@ -63,8 +63,10 @@ class Manager(threading.Thread):
                 hosts.add(c.host)
                 if not c.server:
                     outgoing_connections += 1
-        if outgoing_connections < shared.outgoing_connections and shared.send_outgoing_connections:
-            to_connect = set()
+        to_connect = set()
+        if shared.trusted_peer:
+            to_connect.add(shared.trusted_peer)
+        if outgoing_connections < shared.outgoing_connections and shared.send_outgoing_connections and not shared.trusted_peer:
             if len(shared.unchecked_node_pool) > 16:
                 to_connect.update(random.sample(shared.unchecked_node_pool, 16))
             else:
@@ -74,14 +76,14 @@ class Manager(threading.Thread):
                 to_connect.update(random.sample(shared.node_pool, 8))
             else:
                 to_connect.update(shared.node_pool)
-            for addr in to_connect:
-                if addr[0] in hosts:
-                    continue
-                c = Connection(addr[0], addr[1])
-                c.start()
-                hosts.add(c.host)
-                with shared.connections_lock:
-                    shared.connections.add(c)
+        for addr in to_connect:
+            if addr[0] in hosts:
+                continue
+            c = Connection(addr[0], addr[1])
+            c.start()
+            hosts.add(c.host)
+            with shared.connections_lock:
+                shared.connections.add(c)
         shared.hosts = hosts
 
     @staticmethod
