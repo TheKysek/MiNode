@@ -42,6 +42,7 @@ node_pool = set()
 unchecked_node_pool = set()
 
 outgoing_connections = 8
+connection_limit = 150
 
 objects = {}
 objects_lock = threading.Lock()

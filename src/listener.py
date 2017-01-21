@@ -28,8 +28,11 @@ class Listener(threading.Thread):
                 conn, addr = self.s.accept()
                 logging.info('Incoming connection from: {}:{}'.format(addr[0], addr[1]))
                 with shared.connections_lock:
-                    c = Connection(addr[0], addr[1], conn)
-                    c.start()
-                    shared.connections.add(c)
+                    if len(shared.connections) > shared.connection_limit:
+                        conn.close()
+                    else:
+                        c = Connection(addr[0], addr[1], conn)
+                        c.start()
+                        shared.connections.add(c)
             except socket.timeout:
                 pass
