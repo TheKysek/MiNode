@@ -263,6 +263,8 @@ class Connection(threading.Thread):
             to_get = inv.vectors.copy()
             to_get.difference_update(shared.objects.keys())
             self.vectors_to_get.update(to_get)
+            # Do not send objects they already have.
+            self.vectors_to_send.difference_update(inv.vectors)
         elif m.command == b'object':
             obj = structure.Object.from_message(m)
             logging.debug('{}:{} -> {}'.format(self.host, self.port, obj))
