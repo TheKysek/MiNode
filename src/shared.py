@@ -19,7 +19,7 @@ protocol_version = 3
 services = 3  # NODE_NETWORK, NODE_SSL
 stream = 1
 nonce = os.urandom(8)
-user_agent = b'MiNode-v0.2.0'
+user_agent = b'/MiNode:0.2.1/'
 timeout = 600
 header_length = 24
 
