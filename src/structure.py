@@ -84,6 +84,8 @@ class Object(object):
             return False
         if len(self.object_payload) > 2**18:
             return False
+        if self.stream_number != 1:
+            return False
         data = self.to_bytes()[8:]
         length = len(data) + 8 + shared.payload_length_extra_bytes
         dt = max(self.expires_time - time.time(), 0)
