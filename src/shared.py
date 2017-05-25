@@ -19,7 +19,7 @@ protocol_version = 3
 services = 3  # NODE_NETWORK, NODE_SSL
 stream = 1
 nonce = os.urandom(8)
-user_agent = b'/MiNode:0.2.1/'
+user_agent = b'/MiNode:0.2.2/'
 timeout = 600
 header_length = 24
 
@@ -42,7 +42,7 @@ node_pool = set()
 unchecked_node_pool = set()
 
 outgoing_connections = 8
-connection_limit = 150
+connection_limit = 250
 
 objects = {}
 objects_lock = threading.Lock()
