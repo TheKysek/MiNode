@@ -98,7 +98,7 @@ class Connection(threading.Thread):
                     'Disconnecting from {}:{}. Reason: time.time() - self.last_message_received > shared.timeout'.format(
                         self.host, self.port))
                 self.status = 'disconnecting'
-            if time.time() - self.last_message_received > 30 and self.status != 'fully_established':
+            if time.time() - self.last_message_received > 30 and self.status != 'fully_established'and self.status != 'disconnecting':
                 logging.debug(
                     'Disconnecting from {}:{}. Reason: time.time() - self.last_message_received > 30 and self.status != \'fully_established\''.format(
                         self.host, self.port))
