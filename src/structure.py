@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import base64
 import hashlib
+import logging
 import struct
 import socket
 import time
@@ -81,10 +82,13 @@ class Object(object):
 
     def is_valid(self):
         if self.is_expired():
+            logging.warning('Rejecting object {}, reason: is_expired'.format(self.vector))
             return False
         if len(self.object_payload) > 2**18:
+            logging.warning('Rejecting object {}, reason: len(payload) > 2**18'.format(self.vector))
             return False
         if self.stream_number != 1:
+            logging.warning('Rejecting object {}, reason: not in stream 1'.format(self.vector))
             return False
         data = self.to_bytes()[8:]
         length = len(data) + 8 + shared.payload_length_extra_bytes
@@ -93,7 +97,7 @@ class Object(object):
         pow_value = int.from_bytes(hashlib.sha512(hashlib.sha512(self.nonce + h).digest()).digest()[:8], 'big')
         target = int(2**64/(shared.nonce_trials_per_byte*(length+(dt*length)/(2**16))))
         if target < pow_value:
-            print('insufficient pow')
+            logging.warning('Rejecting object {}, reason: insufficient pow'.format(self.vector))
             return False
         return True
 
