@@ -82,13 +82,13 @@ class Object(object):
 
     def is_valid(self):
         if self.is_expired():
-            logging.warning('Rejecting object {}, reason: is_expired'.format(self.vector))
+            logging.warning('Rejecting object {}, reason: is_expired'.format(base64.b16encode(self.vector).decode()))
             return False
         if len(self.object_payload) > 2**18:
-            logging.warning('Rejecting object {}, reason: len(payload) > 2**18'.format(self.vector))
+            logging.warning('Rejecting object {}, reason: len(payload) > 2**18'.format(base64.b16encode(self.vector).decode()))
             return False
         if self.stream_number != 1:
-            logging.warning('Rejecting object {}, reason: not in stream 1'.format(self.vector))
+            logging.warning('Rejecting object {}, reason: not in stream 1'.format(base64.b16encode(self.vector).decode()))
             return False
         data = self.to_bytes()[8:]
         length = len(data) + 8 + shared.payload_length_extra_bytes
@@ -97,7 +97,7 @@ class Object(object):
         pow_value = int.from_bytes(hashlib.sha512(hashlib.sha512(self.nonce + h).digest()).digest()[:8], 'big')
         target = int(2**64/(shared.nonce_trials_per_byte*(length+(dt*length)/(2**16))))
         if target < pow_value:
-            logging.warning('Rejecting object {}, reason: insufficient pow'.format(self.vector))
+            logging.warning('Rejecting object {}, reason: insufficient pow'.format(base64.b16encode(self.vector).decode()))
             return False
         return True
 
