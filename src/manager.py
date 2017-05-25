@@ -38,8 +38,6 @@ class Manager(threading.Thread):
                 self.last_pickled_nodes = now
 
             if shared.shutting_down:
-                logging.debug('Shutting down connections')
-                self.shutdown_connections()
                 logging.debug('Shutting down Manager')
                 break
 
@@ -85,11 +83,6 @@ class Manager(threading.Thread):
             with shared.connections_lock:
                 shared.connections.add(c)
         shared.hosts = hosts
-
-    @staticmethod
-    def shutdown_connections():
-        for c in shared.connections.copy():
-            c.send_queue.put(None)
 
     @staticmethod
     def pickle_objects():
