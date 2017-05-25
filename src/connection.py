@@ -284,6 +284,8 @@ class Connection(threading.Thread):
         elif m.command == b'ping':
             logging.debug('{}:{} -> ping'.format(self.host, self.port))
             self.send_queue.put(message.Message(b'pong', b''))
+        elif m.command == b'error':
+            logging.error('{}:{} -> error: {}'.format(self.host, self.port, m.payload))
         else:
             logging.debug('{}:{} -> {}'.format(self.host, self.port, m))
 
