@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import argparse
 import csv
 import logging
 import os
@@ -17,11 +18,55 @@ def handler(s, f):
     shared.shutting_down = True
 
 
+def parse_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p', '--port', help='Port to listen on', type=int)
+    parser.add_argument('--debug', help='Enable debug logging', action='store_true')
+    parser.add_argument('--data-dir', help='Path to data directory')
+    parser.add_argument('--no-incoming', help='Do not listen for incoming connections', action='store_true')
+    parser.add_argument('--no-outgoing', help='Do not send outgoing connections', action='store_true')
+    parser.add_argument('--trusted-peer', help='Specify a trusted peer we should connect to')
+    parser.add_argument('--connection-limit', help='Maximum number of connections', type=int)
+
+    args = parser.parse_args()
+    if args.port:
+        shared.listening_port = args.port
+    if args.debug:
+        shared.log_level = logging.DEBUG
+    if args.data_dir:
+        dir_path = args.data_dir
+        if not dir_path.endswith('/'):
+            dir_path += '/'
+        shared.data_directory = dir_path
+    if args.no_incoming:
+        shared.listen_for_connections = False
+    if args.no_outgoing:
+        shared.send_outgoing_connections = False
+    if args.trusted_peer:
+        colon_count = args.trusted_peer.count(':')
+        if colon_count == 0:
+            shared.trusted_peer = (args.trusted_peer, 8444)
+        if colon_count == 1:
+            addr = args.trusted_peer.split(':')
+            shared.trusted_peer = (addr[0], int(addr[1]))
+        if colon_count >= 2:
+            # IPv6 <3
+            addr = args.trusted_peer.split(']:')
+            addr[0] = addr[0][1:]
+            shared.trusted_peer = (addr[0], int(addr[1]))
+    if args.connection_limit:
+        shared.connection_limit = args.connection_limit
+
+
 def main():
     signal.signal(signal.SIGINT, handler)
     signal.signal(signal.SIGTERM, handler)
+
+    parse_arguments()
+
     logging.basicConfig(level=shared.log_level, format='[%(asctime)s] [%(levelname)s] %(message)s')
     logging.info('Starting MiNode')
+    logging.info('Data directory: {}'.format(shared.data_directory))
     if not os.path.exists(shared.data_directory):
         try:
             os.makedirs(shared.data_directory)
@@ -76,7 +121,7 @@ def main():
                 listener_ipv6 = Listener('', shared.listening_port, family=socket.AF_INET6)
                 listener_ipv6.start()
             except Exception as e:
-                logging.warning('Error while starting IPv6 listener')
+                logging.warning('Error while starting IPv6 listener on port {}'.format(shared.listening_port))
                 logging.warning(e)
 
         try:
@@ -84,10 +129,10 @@ def main():
             listener_ipv4.start()
         except Exception as e:
             if listener_ipv6:
-                logging.warning('Error while starting IPv4 listener. '
+                logging.warning('Error while starting IPv4 listener on port {}. '.format(shared.listening_port) +
                                 'However the IPv6 one seems to be working and will probably accept IPv4 connections.')
             else:
-                logging.error('Error while starting IPv4 listener.'
+                logging.error('Error while starting IPv4 listener on port {}. '.format(shared.listening_port) +
                               'You will not receive incoming connections. Please check your port configuration')
                 logging.error(e)
 
