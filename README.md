@@ -18,6 +18,25 @@ chmod +x start.sh
 It is worth noting that the `start.sh` file MiNode no longer tries to do a `git pull` in order to update to the latest version.
 Is is now done by the `update.sh` file.
 
+## Command line
+```
+usage: main.py [-h] [-p PORT] [--debug] [--data-dir DATA_DIR] [--no-incoming]
+               [--no-outgoing] [--trusted-peer TRUSTED_PEER]
+               [--connection-limit CONNECTION_LIMIT]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -p PORT, --port PORT  Port to listen on
+  --debug               Enable debug logging
+  --data-dir DATA_DIR   Path to data directory
+  --no-incoming         Do not listen for incoming connections
+  --no-outgoing         Do not send outgoing connections
+  --trusted-peer TRUSTED_PEER
+                        Specify a trusted peer we should connect to
+  --connection-limit CONNECTION_LIMIT
+                        Maximum number of connections
+```
+
 ## Contact
 - TheKysek: BM-2cVUMXVnQXmTJDmb7q1HUyEqkT92qjwGvJ
 
