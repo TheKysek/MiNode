@@ -15,7 +15,8 @@ chmod +x start.sh
 ./start.sh
 ```
 
-It is worth noting that while executing the `start.sh` file MiNode tries to do a `git pull` in order to update itself to the latest version.
+It is worth noting that the `start.sh` file MiNode no longer tries to do a `git pull` in order to update to the latest version.
+Is is now done by the `update.sh` file.
 
 ## Contact
 - TheKysek: BM-2cVUMXVnQXmTJDmb7q1HUyEqkT92qjwGvJ
