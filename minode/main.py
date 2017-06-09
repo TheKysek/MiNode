@@ -10,6 +10,8 @@ import socket
 from advertiser import Advertiser
 from manager import Manager
 from listener import Listener
+import i2p.controller
+import i2p.listener
 import shared
 
 
@@ -27,6 +29,7 @@ def parse_arguments():
     parser.add_argument('--no-outgoing', help='Do not send outgoing connections', action='store_true')
     parser.add_argument('--trusted-peer', help='Specify a trusted peer we should connect to')
     parser.add_argument('--connection-limit', help='Maximum number of connections', type=int)
+    parser.add_argument('--i2p', help='Enable I2P support (uses SAMv3)', action='store_true')
 
     args = parser.parse_args()
     if args.port:
@@ -43,19 +46,25 @@ def parse_arguments():
     if args.no_outgoing:
         shared.send_outgoing_connections = False
     if args.trusted_peer:
-        colon_count = args.trusted_peer.count(':')
-        if colon_count == 0:
-            shared.trusted_peer = (args.trusted_peer, 8444)
-        if colon_count == 1:
-            addr = args.trusted_peer.split(':')
-            shared.trusted_peer = (addr[0], int(addr[1]))
-        if colon_count >= 2:
-            # IPv6 <3
-            addr = args.trusted_peer.split(']:')
-            addr[0] = addr[0][1:]
-            shared.trusted_peer = (addr[0], int(addr[1]))
+        if len(args.trusted_peer) > 50:
+            # I2P
+            shared.trusted_peer = (args.trusted_peer.encode(), 'i2p')
+        else:
+            colon_count = args.trusted_peer.count(':')
+            if colon_count == 0:
+                shared.trusted_peer = (args.trusted_peer, 8444)
+            if colon_count == 1:
+                addr = args.trusted_peer.split(':')
+                shared.trusted_peer = (addr[0], int(addr[1]))
+            if colon_count >= 2:
+                # IPv6 <3
+                addr = args.trusted_peer.split(']:')
+                addr[0] = addr[0][1:]
+                shared.trusted_peer = (addr[0], int(addr[1]))
     if args.connection_limit:
         shared.connection_limit = args.connection_limit
+    if args.i2p:
+        shared.i2p_enabled = True
 
 
 def main():
@@ -111,6 +120,47 @@ def main():
 
     advertiser = Advertiser()
     advertiser.start()
+
+    if shared.i2p_enabled:
+        dest_priv = b''
+
+        try:
+            with open(shared.data_directory + 'i2p_dest_priv.key', mode='br') as file:
+                dest_priv = file.read()
+                logging.debug('Loaded I2P destination private key.')
+        except Exception as e:
+            logging.warning('Error while loading I2P destination private key.')
+            logging.warning(e)
+
+        logging.info('Starting I2P Controller and creating tunnels. This may take a while.')
+        i2p_controller = i2p.controller.I2PController(shared.i2p_sam_host, shared.i2p_sam_port, dest_priv)
+        i2p_controller.start()
+
+        shared.i2p_dest_pub = i2p_controller.dest_pub
+        shared.i2p_session_nick = i2p_controller.nick
+
+        logging.info('Local I2P destination: {}'.format(shared.i2p_dest_pub.decode()))
+        logging.info('I2P session nick: {}'.format(shared.i2p_session_nick.decode()))
+
+        logging.info('Starting I2P Listener')
+        i2p_listener = i2p.listener.I2PListener(i2p_controller.nick)
+        i2p_listener.start()
+
+        try:
+            with open(shared.data_directory + 'i2p_dest_priv.key', mode='bw') as file:
+                file.write(i2p_controller.dest_priv)
+                logging.debug('Saved I2P destination private key.')
+        except Exception as e:
+            logging.warning('Error while saving I2P destination private key.')
+            logging.warning(e)
+
+        try:
+            with open(shared.data_directory + 'i2p_dest.pub', mode='bw') as file:
+                file.write(shared.i2p_dest_pub)
+                logging.debug('Saved I2P destination public key.')
+        except Exception as e:
+            logging.warning('Error while saving I2P destination public key.')
+            logging.warning(e)
 
     listener_ipv4 = None
     listener_ipv6 = None

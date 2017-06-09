@@ -23,6 +23,12 @@ user_agent = b'/MiNode:0.2.2/'
 timeout = 600
 header_length = 24
 
+i2p_enabled = False
+i2p_sam_host = '127.0.0.1'
+i2p_sam_port = 7656
+i2p_session_nick = b''
+i2p_dest_pub = b''
+
 nonce_trials_per_byte = 1000
 payload_length_extra_bytes = 1000
 

@@ -8,6 +8,7 @@ import threading
 import time
 
 from connection import Connection
+from i2p.dialer import I2PDialer
 import shared
 
 
@@ -77,8 +78,16 @@ class Manager(threading.Thread):
         for addr in to_connect:
             if addr[0] in hosts:
                 continue
-            c = Connection(addr[0], addr[1])
-            c.start()
+            if addr[1] == 'i2p' and shared.i2p_enabled:
+                if shared.i2p_session_nick:
+                    c = I2PDialer(addr[0], shared.i2p_session_nick, shared.i2p_sam_host, shared.i2p_sam_port).get_connection()
+                    c.start()
+                else:
+                    logging.debug('We were going to connect to an I2P peer but our tunnels are not ready')
+                    continue
+            else:
+                c = Connection(addr[0], addr[1])
+                c.start()
             hosts.add(c.host)
             with shared.connections_lock:
                 shared.connections.add(c)

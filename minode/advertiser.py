@@ -33,7 +33,11 @@ class Advertiser(threading.Thread):
     def _advertise_addresses():
         addresses_to_advertise = set()
         while not shared.address_advertise_queue.empty():
-            addresses_to_advertise.add(shared.address_advertise_queue.get())
+            addr = shared.address_advertise_queue.get()
+            if addr.port == 'i2p':
+                # We should not try to construct Addr messages with I2P destinations (yet)
+                continue
+            addresses_to_advertise.add(addr)
         if len(addresses_to_advertise) > 0:
             for c in shared.connections.copy():
                 if c.status == 'fully_established':

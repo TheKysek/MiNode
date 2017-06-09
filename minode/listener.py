@@ -31,7 +31,7 @@ class Listener(threading.Thread):
                     if len(shared.connections) > shared.connection_limit:
                         conn.close()
                     else:
-                        c = Connection(addr[0], addr[1], conn)
+                        c = Connection(addr[0], addr[1], conn, True)
                         c.start()
                         shared.connections.add(c)
             except socket.timeout:
