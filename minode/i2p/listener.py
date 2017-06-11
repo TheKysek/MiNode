@@ -47,8 +47,7 @@ class I2PListener(threading.Thread):
         while not shared.shutting_down:
             try:
                 destination = self._receive_line().split()[0]
-                print(destination)
-                logging.info('Incoming I2P connection from: {}'.format(destination))
+                logging.info('Incoming I2P connection from: {}'.format(destination.decode()))
                 c = Connection(destination, 'i2p', self.s, 'i2p', True, destination)
                 c.start()
                 shared.connections.add(c)

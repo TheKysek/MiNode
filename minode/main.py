@@ -30,6 +30,9 @@ def parse_arguments():
     parser.add_argument('--trusted-peer', help='Specify a trusted peer we should connect to')
     parser.add_argument('--connection-limit', help='Maximum number of connections', type=int)
     parser.add_argument('--i2p', help='Enable I2P support (uses SAMv3)', action='store_true')
+    parser.add_argument('--i2p-tunnel-length', help='Length of I2P tunnels', type=int)
+    parser.add_argument('--i2p-sam-host', help='Host of I2P SAMv3 bridge')
+    parser.add_argument('--i2p-sam-port', help='Port of I2P SAMv3 bridge', type=int)
 
     args = parser.parse_args()
     if args.port:
@@ -65,6 +68,12 @@ def parse_arguments():
         shared.connection_limit = args.connection_limit
     if args.i2p:
         shared.i2p_enabled = True
+    if args.i2p_tunnel_length:
+        shared.i2p_tunnel_length = args.i2p_tunnel_length
+    if args.i2p_sam_host:
+        shared.i2p_sam_host = args.i2p_sam_host
+    if args.i2p_sam_port:
+        shared.i2p_sam_port = args.i2p_sam_port
 
 
 def main():

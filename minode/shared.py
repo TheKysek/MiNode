@@ -26,6 +26,7 @@ header_length = 24
 i2p_enabled = False
 i2p_sam_host = '127.0.0.1'
 i2p_sam_port = 7656
+i2p_tunnel_length = 3
 i2p_session_nick = b''
 i2p_dest_pub = b''
 

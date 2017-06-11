@@ -185,15 +185,15 @@ class Connection(threading.Thread):
             if len(shared.objects) > 0:
                 to_send = {vector for vector in shared.objects.keys() if shared.objects[vector].expires_time > time.time()}
                 while len(to_send) > 0:
-                    if len(to_send) > 50000:
-                        pack = random.sample(to_send, 50000)
+                    if len(to_send) > 10000:
+                        # We limit size of inv messaged to 10000 entries because they might time out in very slow networks (I2P)
+                        pack = random.sample(to_send, 10000)
                         self.send_queue.put(message.Inv(pack))
                         to_send.difference_update(pack)
                     else:
                         self.send_queue.put(message.Inv(to_send))
                         to_send.clear()
         addr = {structure.NetAddr(c.remote_version.services, c.host, c.port) for c in shared.connections.copy() if c.network != 'i2p' and not c.server and c.status == 'fully_established'}
-        addr = set()
         if len(shared.node_pool) > 10:
             addr.update({structure.NetAddr(1, a[0], a[1]) for a in random.sample(shared.node_pool, 10) if a[1] != 'i2p'})
         if len(shared.unchecked_node_pool) > 10:
@@ -307,8 +307,8 @@ class Connection(threading.Thread):
         if self.vectors_to_get:
             self.vectors_to_get.difference_update(shared.objects.keys())
             if self.vectors_to_get:
-                if len(self.vectors_to_get) > 16:
-                    pack = random.sample(self.vectors_to_get, 16)
+                if len(self.vectors_to_get) > 64:
+                    pack = random.sample(self.vectors_to_get, 64)
                     self.send_queue.put(message.GetData(pack))
                     self.vectors_to_get.difference_update(pack)
                 else:
@@ -317,8 +317,8 @@ class Connection(threading.Thread):
 
     def _send_objects(self):
         if self.vectors_to_send:
-            if len(self.vectors_to_send) > 16:
-                to_send = random.sample(self.vectors_to_send, 16)
+            if len(self.vectors_to_send) > 32:
+                to_send = random.sample(self.vectors_to_send, 32)
                 self.vectors_to_send.difference_update(to_send)
             else:
                 to_send = self.vectors_to_send.copy()

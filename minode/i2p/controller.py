@@ -4,6 +4,7 @@ import logging
 import os
 import socket
 import threading
+import time
 
 from i2p.util import receive_line, pub_from_priv
 import shared
@@ -63,9 +64,16 @@ class I2PController(threading.Thread):
         assert self.dest_priv
 
     def create_session(self):
-        self._send(b'SESSION CREATE STYLE=STREAM ID=' + self.nick + b' DESTINATION=' + self.dest_priv + b'\n')
+        self._send(b'SESSION CREATE STYLE=STREAM ID=' + self.nick +
+                   b' inbound.length=' + str(shared.i2p_tunnel_length).encode() +
+                   b' outbound.length=' + str(shared.i2p_tunnel_length).encode() +
+                   b' DESTINATION=' + self.dest_priv + b'\n')
         reply = self._receive_line().split()
-        assert b'RESULT=OK' in reply
+        if b'RESULT=OK' not in reply:
+            logging.warning(reply)
+            logging.warning('We could not create I2P session, retrying in 5 seconds.')
+            time.sleep(5)
+            self.create_session()
 
     def run(self):
         self.s.settimeout(1)

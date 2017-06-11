@@ -80,8 +80,11 @@ class Manager(threading.Thread):
                 continue
             if addr[1] == 'i2p' and shared.i2p_enabled:
                 if shared.i2p_session_nick:
-                    c = I2PDialer(addr[0], shared.i2p_session_nick, shared.i2p_sam_host, shared.i2p_sam_port).get_connection()
-                    c.start()
+                    try:
+                        c = I2PDialer(addr[0], shared.i2p_session_nick, shared.i2p_sam_host, shared.i2p_sam_port).get_connection()
+                        c.start()
+                    except:
+                        pass
                 else:
                     logging.debug('We were going to connect to an I2P peer but our tunnels are not ready')
                     continue
