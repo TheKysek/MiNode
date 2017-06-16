@@ -181,6 +181,15 @@ class Connection(threading.Thread):
         self.on_connection_fully_established_scheduled = False
         if self.remote_version.services & 2 and self.network == 'ip':  # NODE_SSL
             self._do_tls_handshake()
+
+        addr = {structure.NetAddr(c.remote_version.services, c.host, c.port) for c in shared.connections.copy() if c.network != 'i2p' and not c.server and c.status == 'fully_established'}
+        if len(shared.node_pool) > 10:
+            addr.update({structure.NetAddr(1, a[0], a[1]) for a in random.sample(shared.node_pool, 10) if a[1] != 'i2p'})
+        if len(shared.unchecked_node_pool) > 10:
+            addr.update({structure.NetAddr(1, a[0], a[1]) for a in random.sample(shared.unchecked_node_pool, 10) if a[1] != 'i2p'})
+        if len(addr) != 0:
+            self.send_queue.put(message.Addr(addr))
+
         with shared.objects_lock:
             if len(shared.objects) > 0:
                 to_send = {vector for vector in shared.objects.keys() if shared.objects[vector].expires_time > time.time()}
@@ -193,13 +202,6 @@ class Connection(threading.Thread):
                     else:
                         self.send_queue.put(message.Inv(to_send))
                         to_send.clear()
-        addr = {structure.NetAddr(c.remote_version.services, c.host, c.port) for c in shared.connections.copy() if c.network != 'i2p' and not c.server and c.status == 'fully_established'}
-        if len(shared.node_pool) > 10:
-            addr.update({structure.NetAddr(1, a[0], a[1]) for a in random.sample(shared.node_pool, 10) if a[1] != 'i2p'})
-        if len(shared.unchecked_node_pool) > 10:
-            addr.update({structure.NetAddr(1, a[0], a[1]) for a in random.sample(shared.unchecked_node_pool, 10) if a[1] != 'i2p'})
-        if len(addr) != 0:
-            self.send_queue.put(message.Addr(addr))
         self.status = 'fully_established'
 
     def _process_queue(self):
