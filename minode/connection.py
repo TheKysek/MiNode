@@ -319,8 +319,8 @@ class Connection(threading.Thread):
 
     def _send_objects(self):
         if self.vectors_to_send:
-            if len(self.vectors_to_send) > 32:
-                to_send = random.sample(self.vectors_to_send, 32)
+            if len(self.vectors_to_send) > 16:
+                to_send = random.sample(self.vectors_to_send, 16)
                 self.vectors_to_send.difference_update(to_send)
             else:
                 to_send = self.vectors_to_send.copy()
