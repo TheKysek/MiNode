@@ -22,4 +22,4 @@ It is worth noting that while executing the `start.sh` file MiNode tries to do a
 
 ## Links
 - [Bitmessage project website](https://bitmessage.org)
-- [Ptotocol specification](https://bitmessage.org/wiki/Protocol_specification)
+- [Protocol specification](https://bitmessage.org/wiki/Protocol_specification)
