@@ -148,12 +148,16 @@ class Connection(threading.Thread):
 
     def _do_tls_handshake(self):
         logging.debug('Initializing TLS connection with {}:{}'.format(self.host_print, self.port))
-        self.s = ssl.wrap_socket(self.s, keyfile=os.path.join(shared.source_directory, 'tls', 'key.pem'),
-                                 certfile=os.path.join(shared.source_directory, 'tls', 'cert.pem'),
-                                 server_side=self.server, ssl_version=ssl.PROTOCOL_TLSv1, do_handshake_on_connect=False,
-                                 ciphers='AECDH-AES256-SHA', suppress_ragged_eofs=True)
-        if hasattr(self.s, "context"):
-            self.s.context.set_ecdh_curve("secp256k1")
+
+        context = ssl.create_default_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+        context.set_ciphers('AECDH-AES256-SHA')
+        context.set_ecdh_curve("secp256k1")
+        context.options = ssl.OP_ALL | ssl.OP_NO_SSLv2 | ssl.OP_NO_SSLv3 | ssl.OP_SINGLE_ECDH_USE | ssl.OP_CIPHER_SERVER_PREFERENCE
+
+        self.s = context.wrap_socket(self.s, server_side=self.server, do_handshake_on_connect=False)
+
         while True:
             try:
                 self.s.do_handshake()
@@ -167,7 +171,7 @@ class Connection(threading.Thread):
                 self.status = 'disconnecting'
                 break
         self.tls = True
-        logging.debug('Established TLS connection with {}:{}'.format(self.host_print, self.port))
+        logging.debug('Established {} connection with {}:{}'.format(self.s.version(), self.host_print, self.port))
 
     def _send_message(self, m):
         if type(m) == message.Message and m.command == b'object':
