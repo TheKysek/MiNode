@@ -42,4 +42,4 @@ optional arguments:
 
 ## Links
 - [Bitmessage project website](https://bitmessage.org)
-- [Ptotocol specification](https://bitmessage.org/wiki/Protocol_specification)
+- [Protocol specification](https://bitmessage.org/wiki/Protocol_specification)
