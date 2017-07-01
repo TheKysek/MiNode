@@ -54,9 +54,9 @@ MiNode has support for connections over I2P network.
 To use it it needs an I2P router with SAMv3 activated (both Java I2P and i2pd are supported).
 Keep in mind that I2P connections are slow and full synchronization may take a while.
 ### Examples
-Connect to both IP and I2P networks (SAM bridge on default host and port 127.0.0.1:7656) and set tunnel length to 2 (default is 3).
+Connect to both IP and I2P networks (SAM bridge on default host and port 127.0.0.1:7656) and set tunnel length to 3 (default is 2).
 ```
-$ ./start.sh --i2p --i2p-tunnel-length 2
+$ ./start.sh --i2p --i2p-tunnel-length 3
 ```
 
 Connect only to I2P network and listen for IP connections only from local machine.
