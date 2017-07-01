@@ -171,7 +171,7 @@ class Connection(threading.Thread):
                 self.status = 'disconnecting'
                 break
         self.tls = True
-        logging.debug('Established {} connection with {}:{}'.format(self.s.version(), self.host_print, self.port))
+        logging.debug('Established TLS connection with {}:{}'.format(self.host_print, self.port))
 
     def _send_message(self, m):
         if type(m) == message.Message and m.command == b'object':
