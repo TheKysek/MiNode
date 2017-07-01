@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import argparse
+import base64
 import csv
 import logging
+import multiprocessing
 import os
 import pickle
 import signal
@@ -23,10 +25,12 @@ def handler(s, f):
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--port', help='Port to listen on', type=int)
+    parser.add_argument('--host', help='Listening host')
     parser.add_argument('--debug', help='Enable debug logging', action='store_true')
     parser.add_argument('--data-dir', help='Path to data directory')
     parser.add_argument('--no-incoming', help='Do not listen for incoming connections', action='store_true')
     parser.add_argument('--no-outgoing', help='Do not send outgoing connections', action='store_true')
+    parser.add_argument('--no-ip', help='Do not use IP network', action='store_true')
     parser.add_argument('--trusted-peer', help='Specify a trusted peer we should connect to')
     parser.add_argument('--connection-limit', help='Maximum number of connections', type=int)
     parser.add_argument('--i2p', help='Enable I2P support (uses SAMv3)', action='store_true')
@@ -37,6 +41,8 @@ def parse_arguments():
     args = parser.parse_args()
     if args.port:
         shared.listening_port = args.port
+    if args.host:
+        shared.listening_host = args.host
     if args.debug:
         shared.log_level = logging.DEBUG
     if args.data_dir:
@@ -48,6 +54,8 @@ def parse_arguments():
         shared.listen_for_connections = False
     if args.no_outgoing:
         shared.send_outgoing_connections = False
+    if args.no_ip:
+        shared.ip_enabled = False
     if args.trusted_peer:
         if len(args.trusted_peer) > 50:
             # I2P
@@ -105,12 +113,24 @@ def main():
         logging.warning('Error while loading nodes from disk.')
         logging.warning(e)
 
+    try:
+        with open(shared.data_directory + 'i2p_nodes.pickle', mode='br') as file:
+            shared.i2p_node_pool = pickle.load(file)
+    except Exception as e:
+        logging.warning('Error while loading nodes from disk.')
+        logging.warning(e)
+
     with open(os.path.join(shared.source_directory, 'core_nodes.csv'), mode='r', newline='') as f:
         reader = csv.reader(f)
         shared.core_nodes = {tuple(row) for row in reader}
         shared.node_pool.update(shared.core_nodes)
 
-    if not shared.trusted_peer:
+    with open(os.path.join(shared.source_directory, 'i2p_core_nodes.csv'), mode='r', newline='') as f:
+        reader = csv.reader(f)
+        shared.i2p_core_nodes = {(row[0].encode(), 'i2p') for row in reader}
+        shared.i2p_node_pool.update(shared.i2p_core_nodes)
+
+    if shared.ip_enabled and not shared.trusted_peer:
         try:
             for item in socket.getaddrinfo('bootstrap8080.bitmessage.org', 80):
                 shared.unchecked_node_pool.add((item[4][0], 8080))
@@ -122,15 +142,12 @@ def main():
             logging.error('Error during DNS bootstrap')
             logging.error(e)
 
-    manager = Manager()
-    manager.clean_objects()
-    manager.clean_connections()
-    manager.start()
-
-    advertiser = Advertiser()
-    advertiser.start()
-
     if shared.i2p_enabled:
+        # Grab I2P destinations from old object file
+        for obj in shared.objects.values():
+            if obj.object_type == shared.i2p_dest_obj_type:
+                shared.i2p_unchecked_node_pool.add((base64.b64encode(obj.object_payload, altchars=b'-~'), 'i2p'))
+
         dest_priv = b''
 
         try:
@@ -171,20 +188,28 @@ def main():
             logging.warning('Error while saving I2P destination public key.')
             logging.warning(e)
 
+    manager = Manager()
+    manager.clean_objects()
+    manager.clean_connections()
+    manager.start()
+
+    advertiser = Advertiser()
+    advertiser.start()
+
     listener_ipv4 = None
     listener_ipv6 = None
 
     if shared.listen_for_connections:
         if socket.has_ipv6:
             try:
-                listener_ipv6 = Listener('', shared.listening_port, family=socket.AF_INET6)
+                listener_ipv6 = Listener(shared.listening_host, shared.listening_port, family=socket.AF_INET6)
                 listener_ipv6.start()
             except Exception as e:
                 logging.warning('Error while starting IPv6 listener on port {}'.format(shared.listening_port))
                 logging.warning(e)
 
         try:
-            listener_ipv4 = Listener('', shared.listening_port)
+            listener_ipv4 = Listener(shared.listening_host, shared.listening_port)
             listener_ipv4.start()
         except Exception as e:
             if listener_ipv6:
@@ -196,4 +221,5 @@ def main():
                 logging.error(e)
 
 if __name__ == '__main__':
+    multiprocessing.set_start_method('spawn')
     main()

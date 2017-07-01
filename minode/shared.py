@@ -5,12 +5,13 @@ import queue
 import threading
 
 listening_port = 8444
+listening_host = ''
 send_outgoing_connections = True
 listen_for_connections = True
 data_directory = 'minode_data/'
 source_directory = os.path.dirname(os.path.realpath(__file__))
 trusted_peer = None
-# trusted_peer = ('127.0.0.1', 8444)
+ip_enabled = True
 
 log_level = logging.INFO
 
@@ -22,6 +23,7 @@ nonce = os.urandom(8)
 user_agent = b'/MiNode:0.2.2/'
 timeout = 600
 header_length = 24
+i2p_dest_obj_type = 0x493250
 
 i2p_enabled = False
 i2p_sam_host = '127.0.0.1'
@@ -41,12 +43,18 @@ address_advertise_queue = queue.Queue()
 connections = set()
 connections_lock = threading.Lock()
 
+i2p_dialers = set()
+
 hosts = set()
 
 core_nodes = set()
 
 node_pool = set()
 unchecked_node_pool = set()
+
+i2p_core_nodes = set()
+i2p_node_pool = set()
+i2p_unchecked_node_pool = set()
 
 outgoing_connections = 8
 connection_limit = 250

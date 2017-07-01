@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
+import base64
 import errno
 import logging
-import os
 import random
 import select
 import socket
@@ -186,11 +186,11 @@ class Connection(threading.Thread):
         if self.remote_version.services & 2 and self.network == 'ip':  # NODE_SSL
             self._do_tls_handshake()
 
-        addr = {structure.NetAddr(c.remote_version.services, c.host, c.port) for c in shared.connections.copy() if c.network != 'i2p' and not c.server and c.status == 'fully_established'}
+        addr = {structure.NetAddr(c.remote_version.services, c.host, c.port) for c in shared.connections if c.network != 'i2p' and c.server is False and c.status == 'fully_established'}
         if len(shared.node_pool) > 10:
-            addr.update({structure.NetAddr(1, a[0], a[1]) for a in random.sample(shared.node_pool, 10) if a[1] != 'i2p'})
+            addr.update({structure.NetAddr(1, a[0], a[1]) for a in random.sample(shared.node_pool, 10)})
         if len(shared.unchecked_node_pool) > 10:
-            addr.update({structure.NetAddr(1, a[0], a[1]) for a in random.sample(shared.unchecked_node_pool, 10) if a[1] != 'i2p'})
+            addr.update({structure.NetAddr(1, a[0], a[1]) for a in random.sample(shared.unchecked_node_pool, 10)})
         if len(addr) != 0:
             self.send_queue.put(message.Addr(addr))
 
@@ -263,8 +263,11 @@ class Connection(threading.Thread):
                 self.remote_version = version
                 if not self.server:
                     self.send_queue.put('fully_established')
-                    shared.address_advertise_queue.put(structure.NetAddr(version.services, self.host, self.port))
-                    shared.node_pool.add((self.host, self.port))
+                    if self.network == 'ip':
+                        shared.address_advertise_queue.put(structure.NetAddr(version.services, self.host, self.port))
+                        shared.node_pool.add((self.host, self.port))
+                    elif self.network == 'i2p':
+                        shared.i2p_node_pool.add((self.host, 'i2p'))
                 shared.address_advertise_queue.put(structure.NetAddr(shared.services, version.host, shared.listening_port))
                 if self.server:
                     if self.network == 'ip':
@@ -291,6 +294,11 @@ class Connection(threading.Thread):
             if obj.is_valid() and obj.vector not in shared.objects:
                 with shared.objects_lock:
                     shared.objects[obj.vector] = obj
+                if obj.object_type == shared.i2p_dest_obj_type:
+                    dest = base64.b64encode(obj.object_payload, altchars=b'-~')
+                    logging.debug('Received I2P destination object, adding to i2p_unchecked_node_pool')
+                    logging.debug(dest)
+                    shared.i2p_unchecked_node_pool.add((dest, 'i2p'))
                 shared.vector_advertise_queue.put(obj.vector)
         elif m.command == b'getdata':
             getdata = message.GetData.from_message(m)

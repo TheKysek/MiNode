@@ -36,11 +36,11 @@ class I2PController(threading.Thread):
 
     def _receive_line(self):
         line = receive_line(self.s)
-        logging.debug('I2PController <- ' + str(line))
+        # logging.debug('I2PController <- ' + str(line))
         return line
 
     def _send(self, command):
-        logging.debug('I2PController -> ' + str(command))
+        # logging.debug('I2PController -> ' + str(command))
         self.s.sendall(command)
 
     def init_connection(self):

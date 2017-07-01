@@ -24,11 +24,11 @@ class I2PListener(threading.Thread):
 
     def _receive_line(self):
         line = receive_line(self.s)
-        logging.debug('I2PListener <-' + str(line))
+        # logging.debug('I2PListener <- ' + str(line))
         return line
 
     def _send(self, command):
-        logging.debug('I2PListener ->' + str(command))
+        # logging.debug('I2PListener -> ' + str(command))
         self.s.sendall(command)
 
     def create_socket(self):
