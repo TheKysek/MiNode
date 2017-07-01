@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import logging
 import multiprocessing
@@ -33,7 +34,7 @@ def _worker(obj):
 
     logging.debug("Finished doing POW, nonce: {}, time: {}s".format(nonce, time.time() - t))
     obj = structure.Object(nonce, obj.expires_time, obj.object_type, obj.version, obj.stream_number, obj.object_payload)
-    logging.debug("Object vector is {}".format(obj.vector.hex()))
+    logging.debug("Object vector is {}".format(base64.b16encode(obj.vector).decode()))
 
     with shared.objects_lock:
         shared.objects[obj.vector] = obj
