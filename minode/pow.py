@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import multiprocessing
 import shared
 import struct
@@ -10,7 +11,7 @@ import structure
 
 def _pow_worker(target, initial_hash, q):
     nonce = 0
-    print("target: {}, initial_hash: {}".format(target, initial_hash.hex()))
+    logging.debug("target: {}, initial_hash: {}".format(target, initial_hash.hex()))
     trial_value = target + 1
 
     while trial_value > target:
@@ -24,18 +25,16 @@ def _worker(obj):
     q = multiprocessing.Queue()
     p = multiprocessing.Process(target=_pow_worker, args=(obj.pow_target(), obj.pow_initial_hash(), q))
 
-    print("Starting POW process")
+    logging.debug("Starting POW process")
     t = time.time()
     p.start()
     nonce = q.get()
     p.join()
-    print("Finished doing POW, nonce: {}, time: {}s".format(nonce, time.time() - t))
 
+    logging.debug("Finished doing POW, nonce: {}, time: {}s".format(nonce, time.time() - t))
     obj = structure.Object(nonce, obj.expires_time, obj.object_type, obj.version, obj.stream_number, obj.object_payload)
-    print("Object vector is {}".format(obj.vector.hex()))
-    print("Advertising in 10s")
-    time.sleep(10)
-    print("shared.objects len: {}".format(len(shared.objects)))
+    logging.debug("Object vector is {}".format(obj.vector.hex()))
+
     with shared.objects_lock:
         shared.objects[obj.vector] = obj
         shared.vector_advertise_queue.put(obj.vector)
