@@ -12,7 +12,7 @@ import structure
 
 def _pow_worker(target, initial_hash, q):
     nonce = 0
-    logging.debug("target: {}, initial_hash: {}".format(target, initial_hash.hex()))
+    logging.debug("target: {}, initial_hash: {}".format(target, base64.b16encode(initial_hash).decode()))
     trial_value = target + 1
 
     while trial_value > target:
