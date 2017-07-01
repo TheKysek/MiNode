@@ -22,7 +22,7 @@ class Manager(threading.Thread):
         self.last_cleaned_connections = time.time()
         self.last_pickled_objects = time.time()
         self.last_pickled_nodes = time.time()
-        self.last_published_i2p_destination = time.time() - 15 * 60
+        self.last_published_i2p_destination = time.time() - 50 * 60  # Publish destination 10 minutes after start
 
     def run(self):
         while True:
