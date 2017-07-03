@@ -24,6 +24,7 @@ user_agent = b'/MiNode:0.2.2/'
 timeout = 600
 header_length = 24
 i2p_dest_obj_type = 0x493250
+i2p_dest_obj_version = 1
 
 i2p_enabled = False
 i2p_sam_host = '127.0.0.1'

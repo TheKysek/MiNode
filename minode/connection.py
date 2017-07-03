@@ -294,7 +294,7 @@ class Connection(threading.Thread):
             if obj.is_valid() and obj.vector not in shared.objects:
                 with shared.objects_lock:
                     shared.objects[obj.vector] = obj
-                if obj.object_type == shared.i2p_dest_obj_type:
+                if obj.object_type == shared.i2p_dest_obj_type and obj.version == shared.i2p_dest_obj_version:
                     dest = base64.b64encode(obj.object_payload, altchars=b'-~')
                     logging.debug('Received I2P destination object, adding to i2p_unchecked_node_pool')
                     logging.debug(dest)
