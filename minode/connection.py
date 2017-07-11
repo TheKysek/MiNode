@@ -293,6 +293,8 @@ class Connection(threading.Thread):
         elif m.command == b'object':
             obj = structure.Object.from_message(m)
             logging.debug('{}:{} -> {}'.format(self.host_print, self.port, obj))
+            del self.vectors_requested[obj.vector]
+            self.vectors_to_get.remove(obj.vector)
             if obj.is_valid() and obj.vector not in shared.objects:
                 with shared.objects_lock:
                     shared.objects[obj.vector] = obj
