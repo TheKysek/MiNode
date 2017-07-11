@@ -34,6 +34,8 @@ class Connection(threading.Thread):
         self.vectors_to_get = set()
         self.vectors_to_send = set()
 
+        self.vectors_requested = dict()
+
         self.status = 'ready'
 
         self.tls = False
@@ -318,16 +320,24 @@ class Connection(threading.Thread):
             logging.debug('{}:{} -> {}'.format(self.host_print, self.port, m))
 
     def _request_objects(self):
-        if self.vectors_to_get:
+        if self.vectors_to_get and len(self.vectors_requested) < 100:
             self.vectors_to_get.difference_update(shared.objects.keys())
             if self.vectors_to_get:
                 if len(self.vectors_to_get) > 64:
                     pack = random.sample(self.vectors_to_get, 64)
                     self.send_queue.put(message.GetData(pack))
+                    self.vectors_requested.update({vector: time.time() for vector in pack if vector not in self.vectors_requested})
                     self.vectors_to_get.difference_update(pack)
                 else:
                     self.send_queue.put(message.GetData(self.vectors_to_get))
+                    self.vectors_requested.update({vector: time.time() for vector in self.vectors_to_get if vector not in self.vectors_requested})
                     self.vectors_to_get.clear()
+        if self.vectors_requested:
+            self.vectors_requested = {vector: t for vector, t in self.vectors_requested.items() if vector not in shared.objects and t > time.time() - 15 * 60}
+            to_re_request = {vector for vector, t in self.vectors_requested.items() if t < time.time() - 10 * 60}
+            if to_re_request:
+                self.vectors_to_get.update(to_re_request)
+                logging.debug('Re-requesting {} objects from {}:{}'.format(len(to_re_request), self.host_print, self.port))
 
     def _send_objects(self):
         if self.vectors_to_send:
