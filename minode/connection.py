@@ -154,7 +154,13 @@ class Connection(threading.Thread):
         context = ssl.create_default_context()
         context.check_hostname = False
         context.verify_mode = ssl.CERT_NONE
-        context.set_ciphers('AECDH-AES256-SHA')
+
+        if ssl.OPENSSL_VERSION_NUMBER >= 0x10100000 and not ssl.OPENSSL_VERSION.startswith("LibreSSL"):
+            # OpenSSL>=1.1
+            context.set_ciphers('AECDH-AES256-SHA@SECLEVEL=0')
+        else:
+            context.set_ciphers('AECDH-AES256-SHA')
+
         context.set_ecdh_curve("secp256k1")
         context.options = ssl.OP_ALL | ssl.OP_NO_SSLv2 | ssl.OP_NO_SSLv3 | ssl.OP_SINGLE_ECDH_USE | ssl.OP_CIPHER_SERVER_PREFERENCE
 
