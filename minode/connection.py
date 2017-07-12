@@ -270,7 +270,8 @@ class Connection(threading.Thread):
                         shared.node_pool.add((self.host, self.port))
                     elif self.network == 'i2p':
                         shared.i2p_node_pool.add((self.host, 'i2p'))
-                shared.address_advertise_queue.put(structure.NetAddr(shared.services, version.host, shared.listening_port))
+                if self.network == 'ip':
+                    shared.address_advertise_queue.put(structure.NetAddr(shared.services, version.host, shared.listening_port))
                 if self.server:
                     if self.network == 'ip':
                         self.send_queue.put(message.Version(self.host, self.port))
