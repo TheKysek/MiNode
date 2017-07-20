@@ -283,6 +283,7 @@ class Connection(threading.Thread):
                         self.send_queue.put(message.Version(self.host, self.port))
                     else:
                         self.send_queue.put(message.Version('127.0.0.1', 7656))
+
         elif m.command == b'verack':
             self.verack_received = True
             logging.debug('{}:{} -> {}'.format(self.host_print, self.port, 'verack'))
@@ -297,6 +298,7 @@ class Connection(threading.Thread):
             self.vectors_to_get.update(to_get)
             # Do not send objects they already have.
             self.vectors_to_send.difference_update(inv.vectors)
+
         elif m.command == b'object':
             obj = structure.Object.from_message(m)
             logging.debug('{}:{} -> {}'.format(self.host_print, self.port, obj))
@@ -311,20 +313,25 @@ class Connection(threading.Thread):
                     logging.debug(dest)
                     shared.i2p_unchecked_node_pool.add((dest, 'i2p'))
                 shared.vector_advertise_queue.put(obj.vector)
+
         elif m.command == b'getdata':
             getdata = message.GetData.from_message(m)
             logging.debug('{}:{} -> {}'.format(self.host_print, self.port, getdata))
             self.vectors_to_send.update(getdata.vectors)
+
         elif m.command == b'addr':
             addr = message.Addr.from_message(m)
             logging.debug('{}:{} -> {}'.format(self.host_print, self.port, addr))
             for a in addr.addresses:
                 shared.unchecked_node_pool.add((a.host, a.port))
+
         elif m.command == b'ping':
             logging.debug('{}:{} -> ping'.format(self.host_print, self.port))
             self.send_queue.put(message.Message(b'pong', b''))
+
         elif m.command == b'error':
             logging.error('{}:{} -> error: {}'.format(self.host_print, self.port, m.payload))
+
         else:
             logging.debug('{}:{} -> {}'.format(self.host_print, self.port, m))
 

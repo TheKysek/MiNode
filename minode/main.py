@@ -87,21 +87,7 @@ def parse_arguments():
         shared.i2p_transient = True
 
 
-def main():
-    signal.signal(signal.SIGINT, handler)
-    signal.signal(signal.SIGTERM, handler)
-
-    parse_arguments()
-
-    logging.basicConfig(level=shared.log_level, format='[%(asctime)s] [%(levelname)s] %(message)s')
-    logging.info('Starting MiNode')
-    logging.info('Data directory: {}'.format(shared.data_directory))
-    if not os.path.exists(shared.data_directory):
-        try:
-            os.makedirs(shared.data_directory)
-        except Exception as e:
-            logging.warning('Error while creating data directory in: {}'.format(shared.data_directory))
-            logging.warning(e)
+def load_data():
     try:
         with open(shared.data_directory + 'objects.pickle', mode='br') as file:
             shared.objects = pickle.load(file)
@@ -133,97 +119,130 @@ def main():
         shared.i2p_core_nodes = {(row[0].encode(), 'i2p') for row in reader}
         shared.i2p_node_pool.update(shared.i2p_core_nodes)
 
-    if shared.ip_enabled and not shared.trusted_peer:
+
+def bootstrap_from_dns():
+    try:
+        for item in socket.getaddrinfo('bootstrap8080.bitmessage.org', 80):
+            shared.unchecked_node_pool.add((item[4][0], 8080))
+            logging.debug('Adding ' + item[4][0] + ' to unchecked_node_pool based on DNS bootstrap method')
+        for item in socket.getaddrinfo('bootstrap8444.bitmessage.org', 80):
+            shared.unchecked_node_pool.add((item[4][0], 8444))
+            logging.debug('Adding ' + item[4][0] + ' to unchecked_node_pool based on DNS bootstrap method')
+    except Exception as e:
+        logging.error('Error during DNS bootstrap')
+        logging.error(e)
+
+
+def start_ip_listener():
+    listener_ipv4 = None
+    listener_ipv6 = None
+
+    if socket.has_ipv6:
         try:
-            for item in socket.getaddrinfo('bootstrap8080.bitmessage.org', 80):
-                shared.unchecked_node_pool.add((item[4][0], 8080))
-                logging.debug('Adding ' + item[4][0] + ' to unchecked_node_pool based on DNS bootstrap method')
-            for item in socket.getaddrinfo('bootstrap8444.bitmessage.org', 80):
-                shared.unchecked_node_pool.add((item[4][0], 8444))
-                logging.debug('Adding ' + item[4][0] + ' to unchecked_node_pool based on DNS bootstrap method')
+            listener_ipv6 = Listener(shared.listening_host, shared.listening_port, family=socket.AF_INET6)
+            listener_ipv6.start()
         except Exception as e:
-            logging.error('Error during DNS bootstrap')
+            logging.warning('Error while starting IPv6 listener on port {}'.format(shared.listening_port))
+            logging.warning(e)
+
+    try:
+        listener_ipv4 = Listener(shared.listening_host, shared.listening_port)
+        listener_ipv4.start()
+    except Exception as e:
+        if listener_ipv6:
+            logging.warning('Error while starting IPv4 listener on port {}. '.format(shared.listening_port) +
+                            'However the IPv6 one seems to be working and will probably accept IPv4 connections.')
+        else:
+            logging.error('Error while starting IPv4 listener on port {}. '.format(shared.listening_port) +
+                          'You will not receive incoming connections. Please check your port configuration')
             logging.error(e)
 
-    if shared.i2p_enabled:
-        # Grab I2P destinations from old object file
-        for obj in shared.objects.values():
-            if obj.object_type == shared.i2p_dest_obj_type:
-                shared.i2p_unchecked_node_pool.add((base64.b64encode(obj.object_payload, altchars=b'-~'), 'i2p'))
 
-        dest_priv = b''
+def start_i2p_listener():
+    # Grab I2P destinations from old object file
+    for obj in shared.objects.values():
+        if obj.object_type == shared.i2p_dest_obj_type:
+            shared.i2p_unchecked_node_pool.add((base64.b64encode(obj.object_payload, altchars=b'-~'), 'i2p'))
 
-        if not shared.i2p_transient:
-            try:
-                with open(shared.data_directory + 'i2p_dest_priv.key', mode='br') as file:
-                    dest_priv = file.read()
-                    logging.debug('Loaded I2P destination private key.')
-            except Exception as e:
-                logging.warning('Error while loading I2P destination private key.')
-                logging.warning(e)
+    dest_priv = b''
 
-        logging.info('Starting I2P Controller and creating tunnels. This may take a while.')
-        i2p_controller = i2p.controller.I2PController(shared.i2p_sam_host, shared.i2p_sam_port, dest_priv)
-        i2p_controller.start()
-
-        shared.i2p_dest_pub = i2p_controller.dest_pub
-        shared.i2p_session_nick = i2p_controller.nick
-
-        logging.info('Local I2P destination: {}'.format(shared.i2p_dest_pub.decode()))
-        logging.info('I2P session nick: {}'.format(shared.i2p_session_nick.decode()))
-
-        logging.info('Starting I2P Listener')
-        i2p_listener = i2p.listener.I2PListener(i2p_controller.nick)
-        i2p_listener.start()
-
-        if not shared.i2p_transient:
-            try:
-                with open(shared.data_directory + 'i2p_dest_priv.key', mode='bw') as file:
-                    file.write(i2p_controller.dest_priv)
-                    logging.debug('Saved I2P destination private key.')
-            except Exception as e:
-                logging.warning('Error while saving I2P destination private key.')
-                logging.warning(e)
-
+    if not shared.i2p_transient:
         try:
-            with open(shared.data_directory + 'i2p_dest.pub', mode='bw') as file:
-                file.write(shared.i2p_dest_pub)
-                logging.debug('Saved I2P destination public key.')
+            with open(shared.data_directory + 'i2p_dest_priv.key', mode='br') as file:
+                dest_priv = file.read()
+                logging.debug('Loaded I2P destination private key.')
         except Exception as e:
-            logging.warning('Error while saving I2P destination public key.')
+            logging.warning('Error while loading I2P destination private key.')
             logging.warning(e)
+
+    logging.info('Starting I2P Controller and creating tunnels. This may take a while.')
+    i2p_controller = i2p.controller.I2PController(shared.i2p_sam_host, shared.i2p_sam_port, dest_priv)
+    i2p_controller.start()
+
+    shared.i2p_dest_pub = i2p_controller.dest_pub
+    shared.i2p_session_nick = i2p_controller.nick
+
+    logging.info('Local I2P destination: {}'.format(shared.i2p_dest_pub.decode()))
+    logging.info('I2P session nick: {}'.format(shared.i2p_session_nick.decode()))
+
+    logging.info('Starting I2P Listener')
+    i2p_listener = i2p.listener.I2PListener(i2p_controller.nick)
+    i2p_listener.start()
+
+    if not shared.i2p_transient:
+        try:
+            with open(shared.data_directory + 'i2p_dest_priv.key', mode='bw') as file:
+                file.write(i2p_controller.dest_priv)
+                logging.debug('Saved I2P destination private key.')
+        except Exception as e:
+            logging.warning('Error while saving I2P destination private key.')
+            logging.warning(e)
+
+    try:
+        with open(shared.data_directory + 'i2p_dest.pub', mode='bw') as file:
+            file.write(shared.i2p_dest_pub)
+            logging.debug('Saved I2P destination public key.')
+    except Exception as e:
+        logging.warning('Error while saving I2P destination public key.')
+        logging.warning(e)
+
+
+def main():
+    signal.signal(signal.SIGINT, handler)
+    signal.signal(signal.SIGTERM, handler)
+
+    parse_arguments()
+
+    logging.basicConfig(level=shared.log_level, format='[%(asctime)s] [%(levelname)s] %(message)s')
+    logging.info('Starting MiNode')
+
+    logging.info('Data directory: {}'.format(shared.data_directory))
+    if not os.path.exists(shared.data_directory):
+        try:
+            os.makedirs(shared.data_directory)
+        except Exception as e:
+            logging.warning('Error while creating data directory in: {}'.format(shared.data_directory))
+            logging.warning(e)
+
+    load_data()
+
+    if shared.ip_enabled and not shared.trusted_peer:
+        bootstrap_from_dns()
+
+    if shared.i2p_enabled:
+        # We are starting it before cleaning expired objects so we can collect I2P destination objects
+        start_i2p_listener()
 
     manager = Manager()
     manager.clean_objects()
-    manager.clean_connections()
     manager.start()
 
     advertiser = Advertiser()
     advertiser.start()
 
-    listener_ipv4 = None
-    listener_ipv6 = None
-
     if shared.listen_for_connections:
-        if socket.has_ipv6:
-            try:
-                listener_ipv6 = Listener(shared.listening_host, shared.listening_port, family=socket.AF_INET6)
-                listener_ipv6.start()
-            except Exception as e:
-                logging.warning('Error while starting IPv6 listener on port {}'.format(shared.listening_port))
-                logging.warning(e)
+        start_ip_listener()
 
-        try:
-            listener_ipv4 = Listener(shared.listening_host, shared.listening_port)
-            listener_ipv4.start()
-        except Exception as e:
-            if listener_ipv6:
-                logging.warning('Error while starting IPv4 listener on port {}. '.format(shared.listening_port) +
-                                'However the IPv6 one seems to be working and will probably accept IPv4 connections.')
-            else:
-                logging.error('Error while starting IPv4 listener on port {}. '.format(shared.listening_port) +
-                              'You will not receive incoming connections. Please check your port configuration')
-                logging.error(e)
 
 if __name__ == '__main__':
     multiprocessing.set_start_method('spawn')

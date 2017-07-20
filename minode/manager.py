@@ -22,7 +22,7 @@ class Manager(threading.Thread):
         self.last_cleaned_connections = time.time()
         self.last_pickled_objects = time.time()
         self.last_pickled_nodes = time.time()
-        self.last_published_i2p_destination = time.time() - 50 * 60  # Publish destination 10 minutes after start
+        self.last_published_i2p_destination = time.time() - 50 * 60 + random.uniform(-1, 1) * 300  # Publish destination 5-15 minutes after start
 
     def run(self):
         while True:
@@ -35,7 +35,7 @@ class Manager(threading.Thread):
                 self.clean_objects()
                 self.last_cleaned_objects = now
             if now - self.last_cleaned_connections > 2:
-                self.clean_connections()
+                self.manage_connections()
                 self.last_cleaned_connections = now
             if now - self.last_pickled_objects > 100:
                 self.pickle_objects()
@@ -56,7 +56,7 @@ class Manager(threading.Thread):
                 logging.debug('Deleted expired object: {}'.format(base64.b16encode(vector).decode()))
 
     @staticmethod
-    def clean_connections():
+    def manage_connections():
         hosts = set()
         outgoing_connections = 0
         for c in shared.connections.copy():
@@ -147,6 +147,7 @@ class Manager(threading.Thread):
             shared.i2p_node_pool = set(random.sample(shared.i2p_node_pool, 1000))
         if len(shared.i2p_unchecked_node_pool) > 100:
             shared.i2p_unchecked_node_pool = set(random.sample(shared.i2p_unchecked_node_pool, 100))
+
         try:
             with open(shared.data_directory + 'nodes.pickle', mode='bw') as file:
                 pickle.dump(shared.node_pool, file, protocol=3)
