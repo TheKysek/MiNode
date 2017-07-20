@@ -37,6 +37,7 @@ def parse_arguments():
     parser.add_argument('--i2p-tunnel-length', help='Length of I2P tunnels', type=int)
     parser.add_argument('--i2p-sam-host', help='Host of I2P SAMv3 bridge')
     parser.add_argument('--i2p-sam-port', help='Port of I2P SAMv3 bridge', type=int)
+    parser.add_argument('--i2p-transient', help='Generate new I2P destination on start', action='store_true')
 
     args = parser.parse_args()
     if args.port:
@@ -82,6 +83,8 @@ def parse_arguments():
         shared.i2p_sam_host = args.i2p_sam_host
     if args.i2p_sam_port:
         shared.i2p_sam_port = args.i2p_sam_port
+    if args.i2p_transient:
+        shared.i2p_transient = True
 
 
 def main():
@@ -150,13 +153,14 @@ def main():
 
         dest_priv = b''
 
-        try:
-            with open(shared.data_directory + 'i2p_dest_priv.key', mode='br') as file:
-                dest_priv = file.read()
-                logging.debug('Loaded I2P destination private key.')
-        except Exception as e:
-            logging.warning('Error while loading I2P destination private key.')
-            logging.warning(e)
+        if not shared.i2p_transient:
+            try:
+                with open(shared.data_directory + 'i2p_dest_priv.key', mode='br') as file:
+                    dest_priv = file.read()
+                    logging.debug('Loaded I2P destination private key.')
+            except Exception as e:
+                logging.warning('Error while loading I2P destination private key.')
+                logging.warning(e)
 
         logging.info('Starting I2P Controller and creating tunnels. This may take a while.')
         i2p_controller = i2p.controller.I2PController(shared.i2p_sam_host, shared.i2p_sam_port, dest_priv)
@@ -172,13 +176,14 @@ def main():
         i2p_listener = i2p.listener.I2PListener(i2p_controller.nick)
         i2p_listener.start()
 
-        try:
-            with open(shared.data_directory + 'i2p_dest_priv.key', mode='bw') as file:
-                file.write(i2p_controller.dest_priv)
-                logging.debug('Saved I2P destination private key.')
-        except Exception as e:
-            logging.warning('Error while saving I2P destination private key.')
-            logging.warning(e)
+        if not shared.i2p_transient:
+            try:
+                with open(shared.data_directory + 'i2p_dest_priv.key', mode='bw') as file:
+                    file.write(i2p_controller.dest_priv)
+                    logging.debug('Saved I2P destination private key.')
+            except Exception as e:
+                logging.warning('Error while saving I2P destination private key.')
+                logging.warning(e)
 
         try:
             with open(shared.data_directory + 'i2p_dest.pub', mode='bw') as file:
