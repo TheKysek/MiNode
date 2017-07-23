@@ -160,7 +160,7 @@ class Manager(threading.Thread):
 
     @staticmethod
     def publish_i2p_destination():
-        if shared.i2p_session_nick:
+        if shared.i2p_session_nick and not shared.i2p_transient:
             logging.info('Publishing our I2P destination')
             dest_pub_raw = base64.b64decode(shared.i2p_dest_pub, altchars=b'-~')
             obj = structure.Object(b'\x00' * 8, int(time.time() + 2 * 3600), shared.i2p_dest_obj_type, shared.i2p_dest_obj_version, 1, dest_pub_raw)
