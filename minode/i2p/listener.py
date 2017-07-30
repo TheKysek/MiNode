@@ -20,7 +20,7 @@ class I2PListener(threading.Thread):
 
         self.version_reply = []
 
-        self.create_socket()
+        self.new_socket()
 
     def _receive_line(self):
         line = receive_line(self.s)
@@ -31,7 +31,7 @@ class I2PListener(threading.Thread):
         # logging.debug('I2PListener -> ' + str(command))
         self.s.sendall(command)
 
-    def create_socket(self):
+    def new_socket(self):
         self.s = socket.create_connection((self.host, self.port))
         self._send(b'HELLO VERSION MIN=3.0 MAX=3.3\n')
         self.version_reply = self._receive_line().split()
@@ -48,10 +48,20 @@ class I2PListener(threading.Thread):
             try:
                 destination = self._receive_line().split()[0]
                 logging.info('Incoming I2P connection from: {}'.format(destination.decode()))
-                c = Connection(destination, 'i2p', self.s, 'i2p', True, destination)
-                c.start()
-                shared.connections.add(c)
-                self.create_socket()
+
+                hosts = set()
+                for c in shared.connections.copy():
+                    hosts.add(c.host)
+                for d in shared.i2p_dialers.copy():
+                    hosts.add(d.destination)
+                if destination in hosts:
+                    logging.debug('Rejecting duplicate I2P connection.')
+                    self.s.close()
+                else:
+                    c = Connection(destination, 'i2p', self.s, 'i2p', True, destination)
+                    c.start()
+                    shared.connections.add(c)
+                self.new_socket()
             except socket.timeout:
                 pass
         logging.debug('Shutting down I2P Listener')

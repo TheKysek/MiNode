@@ -105,7 +105,7 @@ class Manager(threading.Thread):
             if addr[0] in hosts:
                 continue
             if addr[1] == 'i2p' and shared.i2p_enabled:
-                if shared.i2p_session_nick:
+                if shared.i2p_session_nick and addr[0] != shared.i2p_dest_pub:
                     try:
                         d = I2PDialer(addr[0], shared.i2p_session_nick, shared.i2p_sam_host, shared.i2p_sam_port)
                         d.start()
@@ -115,7 +115,6 @@ class Manager(threading.Thread):
                         logging.warning('Exception while trying to establish an I2P connection')
                         logging.warning(e)
                 else:
-                    logging.debug('We were going to connect to an I2P peer but our tunnels are not ready')
                     continue
             else:
                 c = Connection(addr[0], addr[1])
