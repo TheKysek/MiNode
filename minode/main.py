@@ -235,8 +235,11 @@ def main():
 
     for vector in set(shared.objects):
         if not shared.objects[vector].is_valid():
+            if shared.objects[vector].is_expired():
+                logging.debug('Deleted expired object: {}'.format(base64.b16encode(vector).decode()))
+            else:
+                logging.warning('Deleted invalid object: {}'.format(base64.b16encode(vector).decode()))
             del shared.objects[vector]
-            logging.warning('Deleted invalid object: {}'.format(base64.b16encode(vector).decode()))
 
     manager = Manager()
     manager.start()

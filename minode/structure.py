@@ -82,16 +82,16 @@ class Object(object):
 
     def is_valid(self):
         if self.is_expired():
-            logging.warning('Rejecting object {}, reason: is_expired'.format(base64.b16encode(self.vector).decode()))
+            logging.debug('Invalid object {}, reason: expired'.format(base64.b16encode(self.vector).decode()))
             return False
         if self.expires_time > time.time() + 28 * 24 * 3600 + 3 * 3600:
-            logging.warning('Rejecting object {}, reason: end of life too far into the future'.format(base64.b16encode(self.vector).decode()))
+            logging.warning('Invalid object {}, reason: end of life too far in the future'.format(base64.b16encode(self.vector).decode()))
             return False
         if len(self.object_payload) > 2**18:
-            logging.warning('Rejecting object {}, reason: len(payload) > 2**18'.format(base64.b16encode(self.vector).decode()))
+            logging.warning('Invalid object {}, reason: payload is too long'.format(base64.b16encode(self.vector).decode()))
             return False
         if self.stream_number != 1:
-            logging.warning('Rejecting object {}, reason: not in stream 1'.format(base64.b16encode(self.vector).decode()))
+            logging.warning('Invalid object {}, reason: not in stream 1'.format(base64.b16encode(self.vector).decode()))
             return False
         data = self.to_bytes()[8:]
         length = len(data) + 8 + shared.payload_length_extra_bytes
@@ -100,7 +100,7 @@ class Object(object):
         pow_value = int.from_bytes(hashlib.sha512(hashlib.sha512(self.nonce + h).digest()).digest()[:8], 'big')
         target = self.pow_target()
         if target < pow_value:
-            logging.warning('Rejecting object {}, reason: insufficient pow'.format(base64.b16encode(self.vector).decode()))
+            logging.warning('Invalid object {}, reason: insufficient pow'.format(base64.b16encode(self.vector).decode()))
             return False
         return True
 
