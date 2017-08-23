@@ -33,11 +33,11 @@ class I2PDialer(threading.Thread):
 
     def _receive_line(self):
         line = receive_line(self.s)
-        logging.debug('I2PDialer <- ' + str(line))
+        # logging.debug('I2PDialer <- ' + str(line))
         return line
 
     def _send(self, command):
-        logging.debug('I2PDialer -> ' + str(command))
+        # logging.debug('I2PDialer -> ' + str(command))
         self.s.sendall(command)
 
     def _connect(self):

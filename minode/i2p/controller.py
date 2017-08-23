@@ -18,7 +18,13 @@ class I2PController(threading.Thread):
         self.port = port
         self.nick = b'MiNode_' + base64.b16encode(os.urandom(4)).lower()
 
-        self.s = socket.create_connection((self.host, self.port))
+        while True:
+            try:
+                self.s = socket.create_connection((self.host, self.port))
+                break
+            except ConnectionRefusedError:
+                logging.error("Error while connecting to I2P SAM bridge. Retrying.")
+                time.sleep(10)
 
         self.version_reply = []
 
