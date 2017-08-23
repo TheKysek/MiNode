@@ -233,8 +233,12 @@ def main():
         # We are starting it before cleaning expired objects so we can collect I2P destination objects
         start_i2p_listener()
 
+    for vector in set(shared.objects):
+        if not shared.objects[vector].is_valid():
+            del shared.objects[vector]
+            logging.warning('Deleted invalid object: {}'.format(base64.b16encode(vector).decode()))
+
     manager = Manager()
-    manager.clean_objects()
     manager.start()
 
     advertiser = Advertiser()
