@@ -84,6 +84,9 @@ class Object(object):
         if self.is_expired():
             logging.warning('Rejecting object {}, reason: is_expired'.format(base64.b16encode(self.vector).decode()))
             return False
+        if self.expires_time > time.time() + 28 * 24 * 3600 + 3 * 3600:
+            logging.warning('Rejecting object {}, reason: end of life too far into the future'.format(base64.b16encode(self.vector).decode()))
+            return False
         if len(self.object_payload) > 2**18:
             logging.warning('Rejecting object {}, reason: len(payload) > 2**18'.format(base64.b16encode(self.vector).decode()))
             return False
