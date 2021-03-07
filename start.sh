@@ -1,2 +1,2 @@
 #!/bin/sh
-python3 minode/main.py "$@"
+python3 -m minode.main "$@"
