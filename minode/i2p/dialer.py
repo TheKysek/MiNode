@@ -25,7 +25,7 @@ class I2PDialer(threading.Thread):
         self.success = True
 
     def run(self):
-        logging.debug('Connecting to {}'.format(self.destination))
+        logging.debug('Connecting to %s', self.destination)
         self._connect()
         if not self.state.shutting_down and self.success:
             c = self.state.connection(
@@ -36,22 +36,25 @@ class I2PDialer(threading.Thread):
 
     def _receive_line(self):
         line = receive_line(self.s)
-        # logging.debug('I2PDialer <- ' + str(line))
+        # logging.debug('I2PDialer <- %s', line)
         return line
 
     def _send(self, command):
-        # logging.debug('I2PDialer -> ' + str(command))
+        # logging.debug('I2PDialer -> %s', command)
         self.s.sendall(command)
 
     def _connect(self):
         self._send(b'HELLO VERSION MIN=3.0 MAX=3.3\n')
         self.version_reply = self._receive_line().split()
         if b'RESULT=OK' not in self.version_reply:
-            logging.warning('Error while connecting to {}'.format(self.destination))
+            logging.warning('Error while connecting to %s', self.destination)
             self.success = False
 
-        self._send(b'STREAM CONNECT ID=' + self.nick + b' DESTINATION=' + self.destination + b'\n')
+        self._send(
+            b'STREAM CONNECT ID=' + self.nick + b' DESTINATION='
+            + self.destination + b'\n')
         reply = self._receive_line().split(b' ')
         if b'RESULT=OK' not in reply:
-            logging.warning('Error while connecting to {}'.format(self.destination))
+            logging.warning(
+                'Error while connecting to %s', self.destination)
             self.success = False

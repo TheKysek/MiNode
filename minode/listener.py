@@ -26,12 +26,12 @@ class Listener(threading.Thread):
                 break
             try:
                 conn, addr = self.s.accept()
-                logging.info('Incoming connection from: {}:{}'.format(addr[0], addr[1]))
+                logging.info('Incoming connection from: %s:%s', *addr)
                 with shared.connections_lock:
                     if len(shared.connections) > shared.connection_limit:
                         conn.close()
                     else:
-                        c = Connection(addr[0], addr[1], conn, 'ip', True)
+                        c = Connection(*addr, conn, server=True)
                         c.start()
                         shared.connections.add(c)
             except socket.timeout:

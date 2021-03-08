@@ -23,11 +23,11 @@ class I2PListener(threading.Thread):
 
     def _receive_line(self):
         line = receive_line(self.s)
-        # logging.debug('I2PListener <- ' + str(line))
+        # logging.debug('I2PListener <- %s', line)
         return line
 
     def _send(self, command):
-        # logging.debug('I2PListener -> ' + str(command))
+        # logging.debug('I2PListener -> %s', command)
         self.s.sendall(command)
 
     def new_socket(self):
@@ -46,7 +46,8 @@ class I2PListener(threading.Thread):
         while not self.state.shutting_down:
             try:
                 destination = self._receive_line().split()[0]
-                logging.info('Incoming I2P connection from: {}'.format(destination.decode()))
+                logging.info(
+                    'Incoming I2P connection from: %s', destination.decode())
 
                 hosts = set()
                 for c in self.state.connections.copy():

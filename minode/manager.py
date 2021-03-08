@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import base64
 import logging
+import os
 import pickle
 import queue
 import random
@@ -20,7 +21,9 @@ class Manager(threading.Thread):
         self.last_cleaned_connections = time.time()
         self.last_pickled_objects = time.time()
         self.last_pickled_nodes = time.time()
-        self.last_published_i2p_destination = time.time() - 50 * 60 + random.uniform(-1, 1) * 300  # Publish destination 5-15 minutes after start
+        # Publish destination 5-15 minutes after start
+        self.last_published_i2p_destination = \
+            time.time() - 50 * 60 + random.uniform(-1, 1) * 300
 
     def run(self):
         while True:
@@ -51,7 +54,9 @@ class Manager(threading.Thread):
             if shared.objects[vector].is_expired():
                 with shared.objects_lock:
                     del shared.objects[vector]
-                logging.debug('Deleted expired object: {}'.format(base64.b16encode(vector).decode()))
+                logging.debug(
+                    'Deleted expired object: %s',
+                    base64.b16encode(vector).decode())
 
     @staticmethod
     def manage_connections():
@@ -75,11 +80,15 @@ class Manager(threading.Thread):
         if shared.trusted_peer:
             to_connect.add(shared.trusted_peer)
 
-        if outgoing_connections < shared.outgoing_connections and shared.send_outgoing_connections and not shared.trusted_peer:
+        if (
+            outgoing_connections < shared.outgoing_connections
+            and shared.send_outgoing_connections and not shared.trusted_peer
+        ):
 
             if shared.ip_enabled:
                 if len(shared.unchecked_node_pool) > 16:
-                    to_connect.update(random.sample(shared.unchecked_node_pool, 16))
+                    to_connect.update(random.sample(
+                        shared.unchecked_node_pool, 16))
                 else:
                     to_connect.update(shared.unchecked_node_pool)
                 shared.unchecked_node_pool.difference_update(to_connect)
@@ -90,7 +99,8 @@ class Manager(threading.Thread):
 
             if shared.i2p_enabled:
                 if len(shared.i2p_unchecked_node_pool) > 16:
-                    to_connect.update(random.sample(shared.i2p_unchecked_node_pool, 16))
+                    to_connect.update(
+                        random.sample(shared.i2p_unchecked_node_pool, 16))
                 else:
                     to_connect.update(shared.i2p_unchecked_node_pool)
                 shared.i2p_unchecked_node_pool.difference_update(to_connect)
@@ -112,9 +122,10 @@ class Manager(threading.Thread):
                         d.start()
                         hosts.add(d.destination)
                         shared.i2p_dialers.add(d)
-                    except Exception as e:
-                        logging.warning('Exception while trying to establish an I2P connection')
-                        logging.warning(e)
+                    except Exception:
+                        logging.warning(
+                            'Exception while trying to establish'
+                            ' an I2P connection', exc_info=True)
                 else:
                     continue
             else:
@@ -128,9 +139,11 @@ class Manager(threading.Thread):
     @staticmethod
     def pickle_objects():
         try:
-            with open(shared.data_directory + 'objects.pickle', mode='bw') as file:
+            with open(
+                os.path.join(shared.data_directory, 'objects.pickle'), 'bw'
+            ) as dst:
                 with shared.objects_lock:
-                    pickle.dump(shared.objects, file, protocol=3)
+                    pickle.dump(shared.objects, dst, protocol=3)
                 logging.debug('Saved objects')
         except Exception as e:
             logging.warning('Error while saving objects')
@@ -141,27 +154,37 @@ class Manager(threading.Thread):
         if len(shared.node_pool) > 10000:
             shared.node_pool = set(random.sample(shared.node_pool, 10000))
         if len(shared.unchecked_node_pool) > 1000:
-            shared.unchecked_node_pool = set(random.sample(shared.unchecked_node_pool, 1000))
+            shared.unchecked_node_pool = set(
+                random.sample(shared.unchecked_node_pool, 1000))
 
         if len(shared.i2p_node_pool) > 1000:
-            shared.i2p_node_pool = set(random.sample(shared.i2p_node_pool, 1000))
+            shared.i2p_node_pool = set(
+                random.sample(shared.i2p_node_pool, 1000))
         if len(shared.i2p_unchecked_node_pool) > 100:
-            shared.i2p_unchecked_node_pool = set(random.sample(shared.i2p_unchecked_node_pool, 100))
+            shared.i2p_unchecked_node_pool = set(
+                random.sample(shared.i2p_unchecked_node_pool, 100))
 
         try:
-            with open(shared.data_directory + 'nodes.pickle', mode='bw') as file:
-                pickle.dump(shared.node_pool, file, protocol=3)
-            with open(shared.data_directory + 'i2p_nodes.pickle', mode='bw') as file:
-                pickle.dump(shared.i2p_node_pool, file, protocol=3)
+            with open(
+                os.path.join(shared.data_directory, 'nodes.pickle'), 'bw'
+            ) as dst:
+                pickle.dump(shared.node_pool, dst, protocol=3)
+            with open(
+                os.path.join(shared.data_directory, 'i2p_nodes.pickle'), 'bw'
+            ) as dst:
+                pickle.dump(shared.i2p_node_pool, dst, protocol=3)
                 logging.debug('Saved nodes')
-        except Exception as e:
-            logging.warning('Error while saving nodes')
-            logging.warning(e)
+        except Exception:
+            logging.warning('Error while saving nodes', exc_info=True)
 
     @staticmethod
     def publish_i2p_destination():
         if shared.i2p_session_nick and not shared.i2p_transient:
             logging.info('Publishing our I2P destination')
-            dest_pub_raw = base64.b64decode(shared.i2p_dest_pub, altchars=b'-~')
-            obj = structure.Object(b'\x00' * 8, int(time.time() + 2 * 3600), shared.i2p_dest_obj_type, shared.i2p_dest_obj_version, 1, dest_pub_raw)
+            dest_pub_raw = base64.b64decode(
+                shared.i2p_dest_pub, altchars=b'-~')
+            obj = structure.Object(
+                b'\x00' * 8, int(time.time() + 2 * 3600),
+                shared.i2p_dest_obj_type, shared.i2p_dest_obj_version,
+                1, dest_pub_raw)
             pow.do_pow_and_publish(obj)

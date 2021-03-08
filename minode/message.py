@@ -14,8 +14,12 @@ class Header(object):
         self.payload_checksum = payload_checksum
 
     def __repr__(self):
-        return 'type: header, command: "{}", payload_length: {}, payload_checksum: {}'\
-            .format(self.command.decode(), self.payload_length, base64.b16encode(self.payload_checksum).decode())
+        return (
+            'type: header, command: "{}", payload_length: {},'
+            ' payload_checksum: {}'
+        ).format(
+            self.command.decode(), self.payload_length,
+            base64.b16encode(self.payload_checksum).decode())
 
     def to_bytes(self):
         b = b''
@@ -27,7 +31,8 @@ class Header(object):
 
     @classmethod
     def from_bytes(cls, b):
-        magic_bytes, command, payload_length, payload_checksum = struct.unpack('>4s12sL4s', b)
+        magic_bytes, command, payload_length, payload_checksum = struct.unpack(
+            '>4s12sL4s', b)
 
         if magic_bytes != shared.magic_bytes:
             raise ValueError('magic_bytes do not match')
@@ -46,11 +51,14 @@ class Message(object):
         self.payload_checksum = hashlib.sha512(payload).digest()[:4]
 
     def __repr__(self):
-        return '{}, payload_length: {}, payload_checksum: {}'\
-            .format(self.command.decode(), self.payload_length, base64.b16encode(self.payload_checksum).decode())
+        return '{}, payload_length: {}, payload_checksum: {}'.format(
+            self.command.decode(), self.payload_length,
+            base64.b16encode(self.payload_checksum).decode())
 
     def to_bytes(self):
-        b = Header(self.command, self.payload_length, self.payload_checksum).to_bytes()
+        b = Header(
+            self.command, self.payload_length, self.payload_checksum
+        ).to_bytes()
         b += self.payload
         return b
 
@@ -62,19 +70,26 @@ class Message(object):
         payload_length = len(payload)
 
         if payload_length != h.payload_length:
-            raise ValueError('wrong payload length, expected {}, got {}'.format(h.payload_length, payload_length))
+            raise ValueError(
+                'wrong payload length, expected {}, got {}'.format(
+                    h.payload_length, payload_length))
 
         payload_checksum = hashlib.sha512(payload).digest()[:4]
 
         if payload_checksum != h.payload_checksum:
-            raise ValueError('wrong payload checksum, expected {}, got {}'.format(h.payload_checksum, payload_checksum))
+            raise ValueError(
+                'wrong payload checksum, expected {}, got {}'.format(
+                    h.payload_checksum, payload_checksum))
 
         return cls(h.command, payload)
 
 
 class Version(object):
-    def __init__(self, host, port, protocol_version=shared.protocol_version, services=shared.services,
-                 nonce=shared.nonce, user_agent=shared.user_agent):
+    def __init__(
+        self, host, port, protocol_version=shared.protocol_version,
+        services=shared.services, nonce=shared.nonce,
+        user_agent=shared.user_agent
+    ):
         self.host = host
         self.port = port
 
@@ -84,16 +99,21 @@ class Version(object):
         self.user_agent = user_agent
 
     def __repr__(self):
-        return 'version, protocol_version: {}, services: {}, host: {}, port: {}, nonce: {}, user_agent: {}'\
-            .format(self.protocol_version, self.services, self.host, self.port, base64.b16encode(self.nonce).decode(), self.user_agent)
+        return (
+            'version, protocol_version: {}, services: {}, host: {}, port: {},'
+            ' nonce: {}, user_agent: {}').format(
+                self.protocol_version, self.services, self.host, self.port,
+                base64.b16encode(self.nonce).decode(), self.user_agent)
 
     def to_bytes(self):
         payload = b''
         payload += struct.pack('>I', self.protocol_version)
         payload += struct.pack('>Q', self.services)
         payload += struct.pack('>Q', int(time.time()))
-        payload += structure.NetAddrNoPrefix(shared.services, self.host, self.port).to_bytes()
-        payload += structure.NetAddrNoPrefix(shared.services, '127.0.0.1', 8444).to_bytes()
+        payload += structure.NetAddrNoPrefix(
+            shared.services, self.host, self.port).to_bytes()
+        payload += structure.NetAddrNoPrefix(
+            shared.services, '127.0.0.1', 8444).to_bytes()
         payload += self.nonce
         payload += structure.VarInt(len(shared.user_agent)).to_bytes()
         payload += shared.user_agent
@@ -107,8 +127,9 @@ class Version(object):
 
         payload = m.payload
 
-        protocol_version, services, t, net_addr_remote, net_addr_local, nonce = \
-            struct.unpack('>IQQ26s26s8s', payload[:80])
+        (  # unused: net_addr_local
+            protocol_version, services, t, net_addr_remote, _, nonce
+        ) = struct.unpack('>IQQ26s26s8s', payload[:80])
 
         net_addr_remote = structure.NetAddrNoPrefix.from_bytes(net_addr_remote)
 
@@ -118,7 +139,8 @@ class Version(object):
         payload = payload[80:]
 
         user_agent_varint_length = structure.VarInt.length(payload[0])
-        user_agent_length = structure.VarInt.from_bytes(payload[:user_agent_varint_length]).n
+        user_agent_length = structure.VarInt.from_bytes(
+            payload[:user_agent_varint_length]).n
 
         payload = payload[user_agent_varint_length:]
 
@@ -140,14 +162,18 @@ class Inv(object):
         return 'inv, count: {}'.format(len(self.vectors))
 
     def to_bytes(self):
-        return Message(b'inv', structure.VarInt(len(self.vectors)).to_bytes() + b''.join(self.vectors)).to_bytes()
+        return Message(
+            b'inv', structure.VarInt(len(self.vectors)).to_bytes()
+            + b''.join(self.vectors)
+        ).to_bytes()
 
     @classmethod
     def from_message(cls, m):
         payload = m.payload
 
         vector_count_varint_length = structure.VarInt.length(payload[0])
-        vector_count = structure.VarInt.from_bytes(payload[:vector_count_varint_length]).n
+        vector_count = structure.VarInt.from_bytes(
+            payload[:vector_count_varint_length]).n
 
         payload = payload[vector_count_varint_length:]
 
@@ -171,14 +197,18 @@ class GetData(object):
         return 'getdata, count: {}'.format(len(self.vectors))
 
     def to_bytes(self):
-        return Message(b'getdata', structure.VarInt(len(self.vectors)).to_bytes() + b''.join(self.vectors)).to_bytes()
+        return Message(
+            b'getdata', structure.VarInt(len(self.vectors)).to_bytes()
+            + b''.join(self.vectors)
+        ).to_bytes()
 
     @classmethod
     def from_message(cls, m):
         payload = m.payload
 
         vector_count_varint_length = structure.VarInt.length(payload[0])
-        vector_count = structure.VarInt.from_bytes(payload[:vector_count_varint_length]).n
+        vector_count = structure.VarInt.from_bytes(
+            payload[:vector_count_varint_length]).n
 
         payload = payload[vector_count_varint_length:]
 
@@ -202,14 +232,18 @@ class Addr(object):
         return 'addr, count: {}'.format(len(self.addresses))
 
     def to_bytes(self):
-        return Message(b'addr', structure.VarInt(len(self.addresses)).to_bytes() + b''.join({addr.to_bytes() for addr in self.addresses})).to_bytes()
+        return Message(
+            b'addr', structure.VarInt(len(self.addresses)).to_bytes()
+            + b''.join({addr.to_bytes() for addr in self.addresses})
+        ).to_bytes()
 
     @classmethod
     def from_message(cls, m):
         payload = m.payload
 
         addr_count_varint_length = structure.VarInt.length(payload[0])
-        addr_count = structure.VarInt.from_bytes(payload[:addr_count_varint_length]).n
+        # addr_count = structure.VarInt.from_bytes(
+        #     payload[:addr_count_varint_length]).n
 
         payload = payload[addr_count_varint_length:]
 

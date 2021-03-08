@@ -16,11 +16,14 @@ def receive_line(s):
 
 def pub_from_priv(priv):
     priv = base64.b64decode(priv, altchars=b'-~')
-    # 256 for public key + 128 for signing key + 3 for certificate header + value of bytes priv[385:387]
+    # 256 for public key + 128 for signing key + 3 for certificate header
+    # + value of bytes priv[385:387]
     pub = priv[:387 + int.from_bytes(priv[385:387], byteorder='big')]
     pub = base64.b64encode(pub, altchars=b'-~')
     return pub
 
 
 def b32_from_pub(pub):
-    return base64.b32encode(hashlib.sha256(base64.b64decode(pub, b'-~')).digest()).replace(b"=", b"").lower() + b'.b32.i2p'
+    return base64.b32encode(
+        hashlib.sha256(base64.b64decode(pub, b'-~')).digest()
+    ).replace(b"=", b"").lower() + b'.b32.i2p'

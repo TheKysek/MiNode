@@ -23,7 +23,8 @@ class I2PController(threading.Thread):
                 self.s = socket.create_connection((self.host, self.port))
                 break
             except ConnectionRefusedError:
-                logging.error("Error while connecting to I2P SAM bridge. Retrying.")
+                logging.error(
+                    'Error while connecting to I2P SAM bridge. Retrying.')
                 time.sleep(10)
 
         self.version_reply = []
@@ -42,11 +43,11 @@ class I2PController(threading.Thread):
 
     def _receive_line(self):
         line = receive_line(self.s)
-        # logging.debug('I2PController <- ' + str(line))
+        # logging.debug('I2PController <- %s', line)
         return line
 
     def _send(self, command):
-        # logging.debug('I2PController -> ' + str(command))
+        # logging.debug('I2PController -> %s', command)
         self.s.sendall(command)
 
     def init_connection(self):
@@ -78,7 +79,8 @@ class I2PController(threading.Thread):
         reply = self._receive_line().split()
         if b'RESULT=OK' not in reply:
             logging.warning(reply)
-            logging.warning('We could not create I2P session, retrying in 5 seconds.')
+            logging.warning(
+                'We could not create I2P session, retrying in 5 seconds.')
             time.sleep(5)
             self.create_session()
 

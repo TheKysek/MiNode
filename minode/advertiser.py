@@ -34,7 +34,8 @@ class Advertiser(threading.Thread):
         while not shared.address_advertise_queue.empty():
             addr = shared.address_advertise_queue.get()
             if addr.port == 'i2p':
-                # We should not try to construct Addr messages with I2P destinations (yet)
+                # We should not try to construct Addr messages
+                # with I2P destinations (yet)
                 continue
             addresses_to_advertise.add(addr)
         if len(addresses_to_advertise) > 0:

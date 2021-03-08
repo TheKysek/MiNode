@@ -2,8 +2,8 @@
 import base64
 import hashlib
 import logging
-import struct
 import socket
+import struct
 import time
 
 from . import shared
@@ -44,17 +44,22 @@ class VarInt(object):
 
 
 class Object(object):
-    def __init__(self, nonce, expires_time, object_type, version, stream_number, object_payload):
+    def __init__(
+        self, nonce, expires_time, object_type, version,
+        stream_number, object_payload
+    ):
         self.nonce = nonce
         self.expires_time = expires_time
         self.object_type = object_type
         self.version = version
         self.stream_number = stream_number
         self.object_payload = object_payload
-        self.vector = hashlib.sha512(hashlib.sha512(self.to_bytes()).digest()).digest()[:32]
+        self.vector = hashlib.sha512(hashlib.sha512(
+            self.to_bytes()).digest()).digest()[:32]
 
     def __repr__(self):
-        return 'object, vector: {}'.format(base64.b16encode(self.vector).decode())
+        return 'object, vector: {}'.format(
+            base64.b16encode(self.vector).decode())
 
     @classmethod
     def from_message(cls, m):
@@ -65,15 +70,19 @@ class Object(object):
         version = VarInt.from_bytes(payload[:version_varint_length]).n
         payload = payload[version_varint_length:]
         stream_number_varint_length = VarInt.length(payload[0])
-        stream_number = VarInt.from_bytes(payload[:stream_number_varint_length]).n
+        stream_number = VarInt.from_bytes(
+            payload[:stream_number_varint_length]).n
         payload = payload[stream_number_varint_length:]
-        return cls(nonce, expires_time, object_type, version, stream_number, payload)
+        return cls(
+            nonce, expires_time, object_type, version, stream_number, payload)
 
     def to_bytes(self):
         payload = b''
         payload += self.nonce
         payload += struct.pack('>QL', self.expires_time, self.object_type)
-        payload += VarInt(self.version).to_bytes() + VarInt(self.stream_number).to_bytes()
+        payload += (
+            VarInt(self.version).to_bytes()
+            + VarInt(self.stream_number).to_bytes())
         payload += self.object_payload
         return payload
 
@@ -82,25 +91,37 @@ class Object(object):
 
     def is_valid(self):
         if self.is_expired():
-            logging.debug('Invalid object {}, reason: expired'.format(base64.b16encode(self.vector).decode()))
+            logging.debug(
+                'Invalid object %s, reason: expired',
+                base64.b16encode(self.vector).decode())
             return False
         if self.expires_time > time.time() + 28 * 24 * 3600 + 3 * 3600:
-            logging.warning('Invalid object {}, reason: end of life too far in the future'.format(base64.b16encode(self.vector).decode()))
+            logging.warning(
+                'Invalid object %s, reason: end of life too far in the future',
+                base64.b16encode(self.vector).decode())
             return False
         if len(self.object_payload) > 2**18:
-            logging.warning('Invalid object {}, reason: payload is too long'.format(base64.b16encode(self.vector).decode()))
+            logging.warning(
+                'Invalid object %s, reason: payload is too long',
+                base64.b16encode(self.vector).decode())
             return False
         if self.stream_number != 1:
-            logging.warning('Invalid object {}, reason: not in stream 1'.format(base64.b16encode(self.vector).decode()))
+            logging.warning(
+                'Invalid object %s, reason: not in stream 1',
+                base64.b16encode(self.vector).decode())
             return False
         data = self.to_bytes()[8:]
-        length = len(data) + 8 + shared.payload_length_extra_bytes
-        dt = max(self.expires_time - time.time(), 0)
+        # length = len(data) + 8 + shared.payload_length_extra_bytes
+        # dt = max(self.expires_time - time.time(), 0)
         h = hashlib.sha512(data).digest()
-        pow_value = int.from_bytes(hashlib.sha512(hashlib.sha512(self.nonce + h).digest()).digest()[:8], 'big')
+        pow_value = int.from_bytes(
+            hashlib.sha512(hashlib.sha512(
+                self.nonce + h).digest()).digest()[:8], 'big')
         target = self.pow_target()
         if target < pow_value:
-            logging.warning('Invalid object {}, reason: insufficient pow'.format(base64.b16encode(self.vector).decode()))
+            logging.warning(
+                'Invalid object %s, reason: insufficient pow',
+                base64.b16encode(self.vector).decode())
             return False
         return True
 
@@ -108,7 +129,10 @@ class Object(object):
         data = self.to_bytes()[8:]
         length = len(data) + 8 + shared.payload_length_extra_bytes
         dt = max(self.expires_time - time.time(), 0)
-        return int(2 ** 64 / (shared.nonce_trials_per_byte * (length + (dt * length) / (2 ** 16))))
+        return int(
+            2 ** 64 / (
+                shared.nonce_trials_per_byte * (
+                    length + (dt * length) / (2 ** 16))))
 
     def pow_initial_hash(self):
         return hashlib.sha512(self.to_bytes()[8:]).digest()
@@ -121,7 +145,8 @@ class NetAddrNoPrefix(object):
         self.port = port
 
     def __repr__(self):
-        return 'net_addr_no_prefix, services: {}, host: {}, port {}'.format(self.services, self.host, self.port)
+        return 'net_addr_no_prefix, services: {}, host: {}, port {}'.format(
+            self.services, self.host, self.port)
 
     def to_bytes(self):
         b = b''
@@ -137,7 +162,8 @@ class NetAddrNoPrefix(object):
     @classmethod
     def from_bytes(cls, b):
         services, host, port = struct.unpack('>Q16sH', b)
-        if host.startswith(b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xFF\xFF'):
+        if host.startswith(
+                b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xFF\xFF'):
             host = socket.inet_ntop(socket.AF_INET, host[-4:])
         else:
             host = socket.inet_ntop(socket.AF_INET6, host)
@@ -152,8 +178,8 @@ class NetAddr(object):
         self.port = port
 
     def __repr__(self):
-        return 'net_addr, stream: {}, services: {}, host: {}, port {}'\
-            .format(self.stream, self.services, self.host, self.port)
+        return 'net_addr, stream: {}, services: {}, host: {}, port {}'.format(
+            self.stream, self.services, self.host, self.port)
 
     def to_bytes(self):
         b = b''
@@ -164,6 +190,6 @@ class NetAddr(object):
 
     @classmethod
     def from_bytes(cls, b):
-        t, stream, net_addr = struct.unpack('>QI26s', b)
+        stream, net_addr = struct.unpack('>QI26s', b)[1:]
         n = NetAddrNoPrefix.from_bytes(net_addr)
         return cls(n.services, n.host, n.port, stream)
