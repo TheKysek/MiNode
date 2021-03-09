@@ -9,12 +9,10 @@ import pickle
 import signal
 import socket
 
-from advertiser import Advertiser
-from manager import Manager
-from listener import Listener
-import i2p.controller
-import i2p.listener
-import shared
+from . import i2p, shared
+from .advertiser import Advertiser
+from .manager import Manager
+from .listener import Listener
 
 
 def handler(s, f):
@@ -171,12 +169,15 @@ def start_i2p_listener():
             with open(shared.data_directory + 'i2p_dest_priv.key', mode='br') as file:
                 dest_priv = file.read()
                 logging.debug('Loaded I2P destination private key.')
-        except Exception as e:
-            logging.warning('Error while loading I2P destination private key.')
-            logging.warning(e)
+        except Exception:
+            logging.warning(
+                'Error while loading I2P destination private key.',
+                exc_info=True)
 
-    logging.info('Starting I2P Controller and creating tunnels. This may take a while.')
-    i2p_controller = i2p.controller.I2PController(shared.i2p_sam_host, shared.i2p_sam_port, dest_priv)
+    logging.info(
+        'Starting I2P Controller and creating tunnels. This may take a while.')
+    i2p_controller = i2p.I2PController(
+        shared, shared.i2p_sam_host, shared.i2p_sam_port, dest_priv)
     i2p_controller.start()
 
     shared.i2p_dest_pub = i2p_controller.dest_pub
@@ -186,7 +187,7 @@ def start_i2p_listener():
     logging.info('I2P session nick: {}'.format(shared.i2p_session_nick.decode()))
 
     logging.info('Starting I2P Listener')
-    i2p_listener = i2p.listener.I2PListener(i2p_controller.nick)
+    i2p_listener = i2p.I2PListener(shared, i2p_controller.nick)
     i2p_listener.start()
 
     if not shared.i2p_transient:

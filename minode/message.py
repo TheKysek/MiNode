@@ -4,8 +4,7 @@ import hashlib
 import struct
 import time
 
-import shared
-import structure
+from . import shared, structure
 
 
 class Header(object):

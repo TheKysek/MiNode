@@ -10,9 +10,7 @@ import threading
 import queue
 import time
 
-import message
-import shared
-import structure
+from . import message, shared, structure
 
 
 class Connection(threading.Thread):
@@ -367,4 +365,8 @@ class Connection(threading.Thread):
                 for vector in to_send:
                     obj = shared.objects.get(vector, None)
                     if obj:
-                        self.send_queue.put(message.Message(b'object', obj.to_bytes()))
+                        self.send_queue.put(
+                            message.Message(b'object', obj.to_bytes()))
+
+
+shared.connection = Connection

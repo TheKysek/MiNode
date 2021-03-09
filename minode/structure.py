@@ -6,7 +6,7 @@ import struct
 import socket
 import time
 
-import shared
+from . import shared
 
 
 class VarInt(object):

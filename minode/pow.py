@@ -7,7 +7,7 @@ import struct
 import threading
 import time
 
-import structure
+from . import shared, structure
 
 
 def _pow_worker(target, initial_hash, q):

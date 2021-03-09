@@ -6,14 +6,14 @@ import socket
 import threading
 import time
 
-from i2p.util import receive_line, pub_from_priv
-import shared
+from .util import receive_line, pub_from_priv
 
 
 class I2PController(threading.Thread):
-    def __init__(self, host='127.0.0.1', port=7656, dest_priv=b''):
+    def __init__(self, state, host='127.0.0.1', port=7656, dest_priv=b''):
         super().__init__(name='I2P Controller')
 
+        self.state = state
         self.host = host
         self.port = port
         self.nick = b'MiNode_' + base64.b16encode(os.urandom(4)).lower()
@@ -70,10 +70,11 @@ class I2PController(threading.Thread):
         assert self.dest_priv
 
     def create_session(self):
-        self._send(b'SESSION CREATE STYLE=STREAM ID=' + self.nick +
-                   b' inbound.length=' + str(shared.i2p_tunnel_length).encode() +
-                   b' outbound.length=' + str(shared.i2p_tunnel_length).encode() +
-                   b' DESTINATION=' + self.dest_priv + b'\n')
+        self._send(
+            b'SESSION CREATE STYLE=STREAM ID=' + self.nick
+            + b' inbound.length=' + str(self.state.i2p_tunnel_length).encode()
+            + b' outbound.length=' + str(self.state.i2p_tunnel_length).encode()
+            + b' DESTINATION=' + self.dest_priv + b'\n')
         reply = self._receive_line().split()
         if b'RESULT=OK' not in reply:
             logging.warning(reply)
@@ -84,7 +85,7 @@ class I2PController(threading.Thread):
     def run(self):
         self.s.settimeout(1)
         while True:
-            if not shared.shutting_down:
+            if not self.state.shutting_down:
                 try:
                     msg = self._receive_line().split(b' ')
                     if msg[0] == b'PING':

@@ -3,8 +3,8 @@ import logging
 import socket
 import threading
 
-from connection import Connection
-import shared
+from . import shared
+from .connection import Connection
 
 
 class Listener(threading.Thread):

@@ -3,13 +3,14 @@ import logging
 import socket
 import threading
 
-import shared
-from connection import Connection
-from i2p.util import receive_line
+from .util import receive_line
 
 
 class I2PDialer(threading.Thread):
-    def __init__(self, destination, nick, sam_host='127.0.0.1', sam_port=7656):
+    def __init__(
+        self, state, destination, nick, sam_host='127.0.0.1', sam_port=7656
+    ):
+        self.state = state
         self.sam_host = sam_host
         self.sam_port = sam_port
 
@@ -26,10 +27,12 @@ class I2PDialer(threading.Thread):
     def run(self):
         logging.debug('Connecting to {}'.format(self.destination))
         self._connect()
-        if not shared.shutting_down and self.success:
-            c = Connection(self.destination, 'i2p', self.s, 'i2p', False, self.destination)
+        if not self.state.shutting_down and self.success:
+            c = self.state.connection(
+                self.destination, 'i2p', self.s, 'i2p',
+                False, self.destination)
             c.start()
-            shared.connections.add(c)
+            self.state.connections.add(c)
 
     def _receive_line(self):
         line = receive_line(self.s)

@@ -2,8 +2,7 @@ import logging
 import threading
 import time
 
-import message
-import shared
+from . import message, shared
 
 
 class Advertiser(threading.Thread):

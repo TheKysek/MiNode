@@ -7,11 +7,9 @@ import random
 import threading
 import time
 
-from connection import Connection
-from i2p.dialer import I2PDialer
-import pow
-import shared
-import structure
+from . import pow, shared, structure
+from .connection import Connection
+from .i2p import I2PDialer
 
 
 class Manager(threading.Thread):
@@ -107,7 +105,10 @@ class Manager(threading.Thread):
             if addr[1] == 'i2p' and shared.i2p_enabled:
                 if shared.i2p_session_nick and addr[0] != shared.i2p_dest_pub:
                     try:
-                        d = I2PDialer(addr[0], shared.i2p_session_nick, shared.i2p_sam_host, shared.i2p_sam_port)
+                        d = I2PDialer(
+                            shared,
+                            addr[0], shared.i2p_session_nick,
+                            shared.i2p_sam_host, shared.i2p_sam_port)
                         d.start()
                         hosts.add(d.destination)
                         shared.i2p_dialers.add(d)
