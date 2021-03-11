@@ -21,7 +21,7 @@ setup(
     license='MIT',
     author='Krzysztof Oziomek',
     url='https://github.com/g1itch/MiNode',
-    packages=find_packages(),
+    packages=find_packages(exclude=('*tests',)),
     package_data={'': ['*.csv', 'tls/*.pem']},
     entry_points={'console_scripts': ['minode = minode.main:main']},
     classifiers=[
